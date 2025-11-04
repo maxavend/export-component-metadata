@@ -24,6 +24,9 @@ interface UIOptions {
   format: 'json' | 'md';
 }
 
+// A valid analysis target can be a Component Set or a single Component
+type Target = { set: ComponentSetNode | null; component: ComponentNode | null };
+
 // ---------- Helpers ----------
 
 function cleanPropName(key: string): string {
@@ -83,38 +86,90 @@ function reportStatus(message: string, notify = false): void {
   }
 }
 
-// ---------- Selection resolution (always normalize to Component Set) ----------
+// ---------- Selection resolution (normalize to Component Set or Component) ----------
 
-async function resolveSetFromNodeAsync(node: SceneNode | BaseNode | null): Promise<{ set: ComponentSetNode | null }> {
+async function resolveTargetFromNodeAsync(node: SceneNode | BaseNode | null): Promise<Target> {
   let cur: BaseNode | null = (node as BaseNode) || null;
   while (cur) {
-    if (cur.type === 'COMPONENT_SET') return { set: cur as ComponentSetNode };
+    if (cur.type === 'COMPONENT_SET') return { set: cur as ComponentSetNode, component: null };
     if (cur.type === 'COMPONENT') {
       const p = (cur as ComponentNode).parent;
-      if (p && p.type === 'COMPONENT_SET') return { set: p as ComponentSetNode };
+      if (p && p.type === 'COMPONENT_SET') return { set: p as ComponentSetNode, component: null };
+      return { set: null, component: cur as ComponentNode };
     }
     if (cur.type === 'INSTANCE') {
       const main = await (cur as InstanceNode).getMainComponentAsync();
-      if (main && main.parent && main.parent.type === 'COMPONENT_SET') {
-        return { set: main.parent as ComponentSetNode };
+      if (main) {
+        const p = main.parent;
+        if (p && p.type === 'COMPONENT_SET') return { set: p as ComponentSetNode, component: null };
+        return { set: null, component: main as ComponentNode };
       }
     }
     cur = (cur as BaseNode).parent as BaseNode | null;
   }
-  return { set: null };
+  return { set: null, component: null };
 }
 
-async function resolveFromSelectionAsync(): Promise<{ set: ComponentSetNode | null }>{
+async function resolveFromSelectionAsync(): Promise<Target> {
   const sel = figma.currentPage.selection;
-  if (!sel || sel.length === 0) return { set: null };
+  if (!sel || sel.length === 0) return { set: null, component: null };
   for (const n of sel) {
-    const { set } = await resolveSetFromNodeAsync(n);
-    if (set) return { set };
+    const t = await resolveTargetFromNodeAsync(n);
+    if (t.set || t.component) return t;
   }
-  return { set: null };
+  return { set: null, component: null };
 }
 
 // ---------- Data collectors ----------
+
+function collectPropsFromComponent(comp: ComponentNode): { defs: Record<string, PropDefLite>, order: string[] } {
+  const out: Record<string, PropDefLite> = {};
+  const order: string[] = [];
+  const defs = comp.componentPropertyDefinitions as ComponentPropertyDefinitions | undefined;
+  if (!defs) return { defs: out, order };
+  const rawKeys = Object.keys(defs);
+  // Heuristic: VARIANT first (rare on single component), then pair "Has X" → "X"
+  const items = rawKeys.map((k) => ({ key: k, type: (defs[k].type as PropKind), name: cleanPropName(k) }));
+  const variantKeys = items.filter((i) => i.type === 'VARIANT').map((i) => i.key);
+  const others = items.filter((i) => i.type !== 'VARIANT');
+  const hasMap = new Map<string, string>();
+  for (const it of others) if (it.name.slice(0,4)==='Has ') hasMap.set(it.name.slice(4), it.key);
+  const taken = new Set<string>();
+  const orderedOthers: string[] = [];
+  for (const it of others) {
+    if (taken.has(it.key)) continue;
+    const base = it.name;
+    const hasKey = hasMap.get(base);
+    if (hasKey && !taken.has(hasKey)) { orderedOthers.push(hasKey); taken.add(hasKey); }
+    orderedOthers.push(it.key); taken.add(it.key);
+  }
+  const keys = variantKeys.concat(orderedOthers);
+  for (const key of keys) {
+    const d = defs[key];
+    const type = d.type as PropKind;
+    order.push(key);
+    let defDefaultValue: unknown = undefined;
+    if ('defaultValue' in d) defDefaultValue = (d as { defaultValue?: unknown }).defaultValue;
+    if (type === 'VARIANT') defDefaultValue = undefined;
+    out[key] = {
+      name: cleanPropName(key),
+      type,
+      defaultValue: defDefaultValue,
+      preferredValuesCount: undefined,
+      preferredValuesRaw: undefined,
+      preferredInstanceNames: undefined,
+      variantOptions: Array.isArray((d as any).variantOptions) ? (d as any).variantOptions.slice() : undefined,
+    };
+    if ('preferredValues' in d) {
+      const pv = (d as { preferredValues?: unknown }).preferredValues;
+      if (Array.isArray(pv)) {
+        out[key].preferredValuesCount = pv.length;
+        out[key].preferredValuesRaw = pv as unknown[];
+      }
+    }
+  }
+  return { defs: out, order };
+}
 
 function collectComponentPropsWithOrder(set: ComponentSetNode): { defs: Record<string, PropDefLite>, order: string[] } {
   const out: Record<string, PropDefLite> = {};
@@ -255,14 +310,15 @@ type PrettyProp = {
   values?: string[];
 };
 
-async function toMarkdown(set: ComponentSetNode): Promise<string> {
-  const { defs, order } = collectComponentPropsWithOrder(set);
-
-  const variantCount = set.children.filter((n) => n.type === 'COMPONENT').length;
+async function toMarkdownTarget(target: Target): Promise<string> {
+  const isSet = !!target.set;
+  const name = isSet ? target.set!.name : target.component!.name;
+  const collected = isSet ? collectComponentPropsWithOrder(target.set!) : collectPropsFromComponent(target.component!);
+  const { defs, order } = collected;
+  const variantCount = isSet ? target.set!.children.filter((n) => n.type === 'COMPONENT').length : 1;
   const propsCount = order.length;
-
   const lines: string[] = [];
-  lines.push(`# ${set.name}`);
+  lines.push(`# ${name}`);
   lines.push('');
   lines.push('## Overview');
   lines.push(`- Variants: ${variantCount}`);
@@ -313,22 +369,21 @@ async function toMarkdown(set: ComponentSetNode): Promise<string> {
       // Skip problematic prop but continue
     }
   }
-
   return lines.join('\n');
 }
 
-async function toJSONSummary(set: ComponentSetNode): Promise<string> {
-  const { defs, order } = collectComponentPropsWithOrder(set);
-  const variantCount = set.children.filter((n) => n.type === 'COMPONENT').length;
-
+async function toJSONSummaryTarget(target: Target): Promise<string> {
+  const isSet = !!target.set;
+  const name = isSet ? target.set!.name : target.component!.name;
+  const collected = isSet ? collectComponentPropsWithOrder(target.set!) : collectPropsFromComponent(target.component!);
+  const { defs, order } = collected;
+  const variantCount = isSet ? target.set!.children.filter((n) => n.type === 'COMPONENT').length : 1;
   const props: PropDefLite[] = order.map((k) => defs[k]);
-
   const payload = {
-    name: set.name,
+    name: name,
     overview: { variantsCount: variantCount, componentPropsCount: order.length },
     componentProps: props,
   };
-
   const prettyProps: PrettyProp[] = [];
   for (const k of order) {
     const d = defs[k];
@@ -352,7 +407,6 @@ async function toJSONSummary(set: ComponentSetNode): Promise<string> {
     }
     prettyProps.push(pretty);
   }
-
   const resultPayload = {
     ...payload,
     pretty: { componentProps: prettyProps }
@@ -363,15 +417,17 @@ async function toJSONSummary(set: ComponentSetNode): Promise<string> {
 // ---------- Selection info push ----------
 
 async function sendSelectionInfoAsync(): Promise<void> {
-  const { set } = await resolveFromSelectionAsync();
-  if (!set) {
+  const t = await resolveFromSelectionAsync();
+  if (!t.set && !t.component) {
     post('selection-info', { name: 'No selection detected', variantCount: 0, propsCount: 0 });
     reportStatus('⚠️ No valid selection. Select a Component, Instance or Component Set.');
     return;
   }
-  const variantCount = set.children.filter((n) => n.type === 'COMPONENT').length;
-  const { order } = collectComponentPropsWithOrder(set);
-  post('selection-info', { name: set.name, variantCount, propsCount: order.length });
+  const isSet = !!t.set;
+  const name = isSet ? t.set!.name : t.component!.name;
+  const collected = isSet ? collectComponentPropsWithOrder(t.set!) : collectPropsFromComponent(t.component!);
+  const variantCount = isSet ? t.set!.children.filter((n)=>n.type==='COMPONENT').length : 1;
+  post('selection-info', { name, variantCount, propsCount: collected.order.length });
   reportStatus('✅ Selection detected.');
 }
 
@@ -386,18 +442,18 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
     case 'ui-generate': {
       try {
         reportStatus('⚙️ Generating…');
-        const { set } = await resolveFromSelectionAsync();
-        if (!set) {
+        const t = await resolveFromSelectionAsync();
+        if (!t.set && !t.component) {
           post('generation-result', { format: msg.options?.format, output: '' });
           reportStatus('⚠️ Please select a Component, Instance or Component Set.', true);
           return;
         }
         const fmt = msg.options?.format;
         if (fmt === 'md') {
-          const out = await toMarkdown(set);
+          const out = await toMarkdownTarget(t);
           post('generation-result', { format: 'md', output: out });
         } else if (fmt === 'json') {
-          const out = await toJSONSummary(set);
+          const out = await toJSONSummaryTarget(t);
           post('generation-result', { format: 'json', output: out });
         }
         reportStatus('✅ Generated.');
@@ -411,8 +467,8 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
     }
     case 'ui-export': {
       const content = msg.payload || '';
-      const { set } = await resolveFromSelectionAsync();
-      const name = set ? set.name : 'component-metadata';
+      const t = await resolveFromSelectionAsync();
+      const name = t.set ? t.set.name : (t.component ? t.component.name : 'component-metadata');
       // Ask UI to download a file (UI should handle this message)
       figma.ui.postMessage({ type: 'download', filename: `${name}.json`, content });
       reportStatus('💾 Export ready (JSON).');

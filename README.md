@@ -1,40 +1,149 @@
-Below are the steps to get your plugin running. You can also find instructions at:
+# Export Component Metadata
 
-  https://www.figma.com/plugin-docs/plugin-quickstart-guide/
+**Export Component Metadata** is a professional-grade Figma plugin that allows designers, developers, and documentation teams to extract and visualize structured metadata from any **Component** or **Component Set**.  
+It generates clear, well-organized documentation in **Markdown** and **JSON**, suitable for integration with documentation platforms like **Zeroheight**, **Supernova**, or **Storybook**.
 
-This plugin template uses Typescript and NPM, two standard tools in creating JavaScript applications.
+---
 
-First, download Node.js which comes with NPM. This will allow you to install TypeScript and other
-libraries. You can find the download link here:
+## Overview
 
-  https://nodejs.org/en/download/
+This plugin simplifies the process of documenting **Component Properties** (Variants, Booleans, Text, String, Instance Swap, etc.) directly from Figma — ensuring consistent and standardized component documentation across teams.
 
-Next, install TypeScript using the command:
+You can select either:
+- A **Component Set** (to include all variants)
+- A **single Component** (even if it doesn’t belong to a set)
 
-  npm install -g typescript
+Then the plugin automatically extracts all available **properties**, orders them intelligently (using a stable heuristic similar to Figma’s UI order), and generates a clean Markdown summary or JSON export.
 
-Finally, in the directory of your plugin, get the latest type definitions for the plugin API by running:
+---
 
-  npm install --save-dev @figma/plugin-typings
+## Features
 
-If you are familiar with JavaScript, TypeScript will look very familiar. In fact, valid JavaScript code
-is already valid Typescript code.
+- **Markdown or JSON Export** — auto‑generate readable or structured metadata documentation.
+- **Full Property Support** — detects and lists:
+  - `VARIANT` groups
+  - `BOOLEAN` toggles
+  - `TEXT` and `STRING` inputs
+  - `INSTANCE_SWAP` with preferred instances
+- **Component‑Level Detection** — works with both **Component Sets** and **single Components**.
+- **Heuristic Ordering** — preserves an order similar to Figma’s property panel (e.g., “Has Left Icon” before “Left Icon”).
+- **Inline Status Feedback** — see real‑time messages in the plugin UI.
+- **One‑Click Export** — export metadata in `.json` format for reuse or automation pipelines.
 
-TypeScript adds type annotations to variables. This allows code editors such as Visual Studio Code
-to provide information about the Figma API while you are writing code, as well as help catch bugs
-you previously didn't notice.
+---
 
-For more information, visit https://www.typescriptlang.org/
+## Why This Plugin?
 
-Using TypeScript requires a compiler to convert TypeScript (code.ts) into JavaScript (code.js)
-for the browser to run.
+Figma doesn’t expose the UI order of properties via the Plugin API.  
+**Export Component Metadata** solves this by implementing a **heuristic ordering logic** that intelligently groups and pairs related properties, making the output predictable and human-readable — without clutter.
 
-We recommend writing TypeScript code using Visual Studio code:
+This allows:
+- Design systems teams to generate accurate component documentation in seconds.
+- Developers to import property definitions for code token mapping.
+- Product designers to share structured specs directly from Figma.
 
-1. Download Visual Studio Code if you haven't already: https://code.visualstudio.com/.
-2. Open this directory in Visual Studio Code.
-3. Compile TypeScript to JavaScript: Run the "Terminal > Run Build Task..." menu item,
-    then select "npm: watch". You will have to do this again every time
-    you reopen Visual Studio Code.
+---
 
-That's it! Visual Studio Code will regenerate the JavaScript file every time you save.
+## 🧩 Technical Architecture
+
+### Core API Used
+| Area | API / Method | Purpose |
+|------|---------------|---------|
+| Node Resolution | `figma.currentPage.selection` + `getMainComponentAsync()` | To detect the selected node and resolve it to a Component or Component Set |
+| Metadata Extraction | `componentPropertyDefinitions` | To retrieve property names, types, and default values |
+| Async Access | `figma.getNodeByIdAsync()` | Modern async API to safely fetch nodes |
+| Communication | `figma.ui.postMessage()` / `figma.ui.onmessage` | Bidirectional data flow between plugin backend and UI |
+| Export | `figma.ui.postMessage({ format: "json" })` | Export clean structured data |
+
+---
+
+## ⚙️ How It Works
+
+1. **Select** a Component or Component Set in Figma.
+2. **Open the Plugin** → "Export Component Metadata".
+3. Click **Generate** to produce Markdown and JSON documentation.
+4. Copy or Export results with one click.
+
+If a Component is selected (not a set), the plugin still outputs all its **Component Properties** (booleans, text, instance swaps, etc.) even if there are no variants.
+
+---
+
+## 📦 Installation (Development)
+
+1. Clone or download this repository.
+2. Run:
+   ```bash
+   npm install
+   ```
+3. Compile the plugin with:
+   ```bash
+   npm run build
+   ```
+4. In Figma, go to **Plugins → Development → New Plugin...**
+   and select the `manifest.json` file from this project.
+5. Launch the plugin via **Plugins → Development → Export Component Metadata**.
+
+---
+
+## 🧰 Technology Stack
+
+- **Language:** TypeScript
+- **UI:** Vanilla HTML + CSS (using a custom Figma UI Kit)
+- **Figma APIs:** Plugin API (v1.0+)
+- **Build Tool:** TypeScript Compiler (tsc)
+- **Export Format:** Markdown + JSON
+
+---
+
+## 🪶 Example Output
+
+```markdown
+# Button
+
+## Overview
+- Variants: 105
+- Component Properties: 8
+
+## Component Props
+[BOOLEAN] **Has Left Icon**  
+Values: True / False  
+Default: true  
+
+[INSTANCE SWAP] **Left Icon**  
+Default: dashboard_customize  
+Preferred Instances (3): `icon/chevron-left`, `icon/back`, `icon/menu`
+
+[TEXT] **Text**  
+Default: Body text  
+
+[VARIANT] **Size**  
+Values: L, M, S  
+
+[VARIANT] **Variant**  
+Values: Primary, Secondary, Tertiary, Tonal, Danger/Text, Overlay
+```
+
+---
+
+## 🧩 Developer Notes
+
+- Built using **official Figma Plugin API**:  
+  [https://www.figma.com/plugin-docs/api/](https://www.figma.com/plugin-docs/api/)
+- The plugin avoids deprecated sync methods like `getNodeById` and fully supports async operations.
+- The code structure follows a clear separation:
+  - `code.ts` → plugin logic (Figma side)
+  - `ui.html` → user interface (browser side)
+
+---
+
+## 🧑‍💻 Author
+**Maximiliano Avendaño Rincón**  
+Design Systems Engineer / Plugin Developer  
+📍 SCL 
+💼 GitHub: [@maxavend](https://github.com/maxavend)
+
+---
+
+## 🧾 License
+
+MIT License — use, modify, and distribute freely with attribution.
