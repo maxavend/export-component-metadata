@@ -44,7 +44,7 @@ This allows:
 
 ---
 
-## 🧩 Technical Architecture
+## Technical Architecture
 
 ### Core API Used
 | Area | API / Method | Purpose |
@@ -57,7 +57,7 @@ This allows:
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 1. **Select** a Component or Component Set in Figma.
 2. **Open the Plugin** → "Export Component Metadata".
@@ -68,7 +68,7 @@ If a Component is selected (not a set), the plugin still outputs all its **Compo
 
 ---
 
-## 📦 Installation (Development)
+## Installation (Development)
 
 1. Clone or download this repository.
 2. Run:
@@ -85,7 +85,7 @@ If a Component is selected (not a set), the plugin still outputs all its **Compo
 
 ---
 
-## 🧰 Technology Stack
+## Technology Stack
 
 - **Language:** TypeScript
 - **UI:** Vanilla HTML + CSS (using a custom Figma UI Kit)
@@ -95,7 +95,7 @@ If a Component is selected (not a set), the plugin still outputs all its **Compo
 
 ---
 
-## 🪶 Example Output
+## Example Output
 
 ```markdown
 # Button
@@ -125,7 +125,7 @@ Values: Primary, Secondary, Tertiary, Tonal, Danger/Text, Overlay
 
 ---
 
-## 🧩 Developer Notes
+## Developer Notes
 
 - Built using **official Figma Plugin API**:  
   [https://www.figma.com/plugin-docs/api/](https://www.figma.com/plugin-docs/api/)
@@ -136,14 +136,14 @@ Values: Primary, Secondary, Tertiary, Tonal, Danger/Text, Overlay
 
 ---
 
-## 🧑‍💻 Author
+## Author
 **Maximiliano Avendaño Rincón**  
 Design Systems Engineer / Plugin Developer  
 📍 SCL 
-💼 GitHub: [@maxavend](https://github.com/maxavend)
+GitHub: [@maxavend](https://github.com/maxavend)
 
 ---
 
-## 🧾 License
+## License
 
 MIT License — use, modify, and distribute freely with attribution.
