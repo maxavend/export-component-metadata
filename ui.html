@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Export Component Metadata</title>
+  <!-- UI Kit: Inter font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== UI KIT VARIABLES ===== */
+    :root {
+      --font-sans: 'Inter', -apple-system, system-ui, "SF Pro Text", Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      --radius-lg: 8px;
+      --radius: 4px;
+      --shadow-md: 0 4px 12px rgb(0 0 0 / 0.1);
+      /* Palette from UI Kit */
+      --bg: #262626;
+      --surface: #2C2C2C;
+      --border: #444444;
+      --muted: #454545;
+      --text: #fbfbfb;
+      --text-muted: #dedede;
+      --accent: #f7f7f7;
+      --ring: 0 0 0 1px #b5b5b5;
+      --ring-color: #b5b5b5;
+      /* Buttons */
+      --btn-default-bg: #fbfbfb;
+      --btn-default-fg: #252525;
+      --btn-default-hover: #f7f7f7;
+      --btn-secondary-bg: #5f5f5f;
+      --btn-secondary-fg: #fbfbfb;
+      --btn-secondary-hover: #707070;
+      --editor-bg: #383838;
+    }
+
+    * { box-sizing: border-box; }
+    html { font-size: 16px; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Container sized for Figma plugin window 820x900 */
+    .container { max-width: 820px; height: 900px; padding: 16px; margin: 0 auto; }
+
+    /* Header */
+    h1 { margin: 0; font-size: 16px; font-weight: 700; }
+    .subtitle { color: var(--text-muted); margin-top: 4px; }
+
+    /* Sections & Cards */
+    .section { margin-top: 16px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; }
+
+    /* Labels & Inputs (from kit) */
+    .label { display: block; color: var(--text-muted); font-size: 12px; margin: 0 0 6px; }
+    .input {
+      height: 34px; width: 100%; border: none; background: var(--editor-bg); color: var(--text);
+      padding: 0 12px; border-radius: var(--radius); outline: none; font-size: 14px; text-align: left;
+      transition: box-shadow .12s;
+    }
+    .input:focus-visible { box-shadow: var(--ring); }
+
+    /* Pills as Tabs (from kit) */
+    .pills { display: flex; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; height: 28px;
+      border-radius: var(--radius); border: none; cursor: pointer; background: var(--editor-bg);
+      color: var(--text-muted); font-weight: 600; font-size: 12px;
+    }
+    .pill.active { color: var(--bg); background: var(--text); }
+
+    .tabpanel { display: none; }
+    .tabpanel[aria-hidden="false"] { display: block; }
+
+    /* Readonly textarea (editor look) */
+    .textarea {
+      width: 100%; min-width: 100%; max-width: 100%; min-height: 260px;
+      background: var(--editor-bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 10px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5;
+      resize: vertical; overflow: auto;
+    }
+
+    /* Actions (buttons from kit) */
+    .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .btn {
+      appearance: none; user-select: none; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; font-weight: 500; font-size: 14px; border-radius: var(--radius); border: 1px solid transparent;
+      transition: transform .06s, background-color .12s, color .12s, border-color .12s, box-shadow .12s;
+      padding: 0 12px; height: 32px; line-height: 1; position: relative;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn--default { background: var(--btn-default-bg); color: var(--btn-default-fg); }
+    .btn--default:hover { background: var(--btn-default-hover); }
+    .btn--secondary { background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
+    .btn--secondary:hover { background: var(--btn-secondary-hover); }
+
+    /* Status text */
+    .status { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
+    .status.ok { color: #22c55e; }
+    .status.warn { color: #fbbf24; }
+    .status.err { color: #ef4444; }
+
+    /* Optional: Scrollbar subtle */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--surface); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Export Component Metadata</h1>
+      <div class="subtitle">Generate clean metadata for Component Sets (Variants & Props)</div>
+    </header>
+
+    <section class="section card">
+      <label class="label" for="selectionName">Selection</label>
+      <input id="selectionName" class="input" type="text" value="No selection detected" readonly />
+      <div id="miniSummary" class="status" style="margin-top:6px;">Variants: 0 · Component Props: 0</div>
+    </section>
+
+    <section class="section card">
+      <div class="pills" role="tablist" aria-label="Output format">
+        <button id="tab-md" class="pill active" role="tab" aria-controls="panel-md" aria-selected="true">Markdown</button>
+        <button id="tab-json" class="pill" role="tab" aria-controls="panel-json" aria-selected="false">JSON</button>
+      </div>
+
+      <div id="panel-md" class="tabpanel" role="tabpanel" aria-hidden="false" aria-labelledby="tab-md">
+        <textarea id="output-md" class="textarea" placeholder="Markdown will appear here" readonly></textarea>
+      </div>
+      <div id="panel-json" class="tabpanel" role="tabpanel" aria-hidden="true" aria-labelledby="tab-json">
+        <textarea id="output-json" class="textarea" placeholder="JSON will appear here" readonly></textarea>
+      </div>
+
+      <div id="status" class="status">Ready.</div>
+    </section>
+
+    <div class="actions">
+      <button id="exportBtn" class="btn btn--secondary" disabled><span class="btn__label">Export</span></button>
+      <button id="copyBtn" class="btn btn--secondary" disabled><span class="btn__label">Copy</span></button>
+      <button id="generateBtn" class="btn btn--default"><span class="btn__label">Generate</span></button>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function setStatus(msg, tone){
+      const el = $('status');
+      el.textContent = msg;
+      el.classList.remove('ok','warn','err');
+      if (tone) el.classList.add(tone);
+    }
+    function setMiniSummary(vCount, pCount){
+      $('miniSummary').textContent = `Variants: ${vCount} · Component Props: ${pCount}`;
+    }
+
+    // Pills as tabs
+    const tabs = [
+      { btn: $('tab-md'), panel: $('panel-md'), area: $('output-md'), fmt: 'md' },
+      { btn: $('tab-json'), panel: $('panel-json'), area: $('output-json'), fmt: 'json' }
+    ];
+    function activateTab(idx){
+      tabs.forEach((t,i)=>{
+        t.btn.classList.toggle('active', i===idx);
+        t.btn.setAttribute('aria-selected', i===idx ? 'true' : 'false');
+        t.panel.setAttribute('aria-hidden', i===idx ? 'false' : 'true');
+      });
+    }
+    tabs.forEach((t,i)=> t.btn.addEventListener('click', ()=> activateTab(i)));
+
+    // Copy
+    $('copyBtn').addEventListener('click', async () => {
+      const active = tabs.find(t=> t.panel.getAttribute('aria-hidden') === 'false');
+      if (!active) return;
+      const text = active.area.value || '';
+      try{
+        await navigator.clipboard.writeText(text);
+        setStatus('📋 Copied to clipboard', 'ok');
+      }catch(e){ setStatus('❌ Copy failed', 'err'); }
+    });
+
+    // Export JSON
+    $('exportBtn').addEventListener('click', () => {
+      const json = $('output-json').value || '';
+      if (!json.trim()) { setStatus('⚠️ Nothing to export', 'warn'); return; }
+      parent.postMessage({ pluginMessage: { type: 'ui-export', payload: json } }, '*');
+    });
+
+    // Generate
+    $('generateBtn').addEventListener('click', () => {
+      setStatus('⚙️ Generating…');
+      parent.postMessage({ pluginMessage: { type: 'ui-generate', options: { format: 'md' } } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'ui-generate', options: { format: 'json' } } }, '*');
+    });
+
+    // Init
+    window.addEventListener('load', () => {
+      parent.postMessage({ pluginMessage: { type: 'ui-ready' } }, '*');
+    });
+
+    // Receive messages from code.ts
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage || {};
+      if (msg.type === 'selection-info'){
+        $('selectionName').value = msg.name || 'No selection detected';
+        setMiniSummary(msg.variantCount || 0, msg.propsCount || 0);
+      }
+      if (msg.type === 'generation-result'){
+        if (msg.format === 'md') $('output-md').value = msg.output || '';
+        if (msg.format === 'json') $('output-json').value = msg.output || '';
+        const hasContent = Boolean((msg.output||'').trim());
+        $('copyBtn').disabled = !hasContent;
+        $('exportBtn').disabled = !Boolean(($('output-json').value||'').trim());
+      }
+      if (msg.type === 'status'){
+        const text = msg.message || '';
+        let tone = undefined;
+        if (/^✅/.test(text)) tone = 'ok';
+        else if (/^⚠️/.test(text)) tone = 'warn';
+        else if (/^❌/.test(text)) tone = 'err';
+        setStatus(text, tone);
+      }
+    };
+  </script>
+</body>
+</html>
