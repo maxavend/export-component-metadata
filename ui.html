@@ -6,9 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Export Component Metadata</title>
   <!-- UI Kit: Inter font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ===== UI KIT VARIABLES ===== */
     :root {
@@ -89,7 +86,11 @@
       border: 1px solid var(--border); border-radius: var(--radius);
       padding: 10px; font-family: var(--font-mono); font-size: 12px; line-height: 1.5;
       resize: vertical; overflow: auto;
+      will-change: contents;
     }
+    /* Terminal-like progress visuals */
+    .textarea.terminal { background: #222; color: #e5e5e5; border-color: #3a3a3a; }
+    .muted { opacity: .8; }
 
     /* Actions (buttons from kit) */
     .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
@@ -106,6 +107,12 @@
     .btn--secondary { background: var(--btn-secondary-bg); color: var(--btn-secondary-fg); }
     .btn--secondary:hover { background: var(--btn-secondary-hover); }
 
+    /* Loading visuals */
+    .btn .btn__spinner { display: none; width: 16px; height: 16px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.9s linear infinite; }
+    .btn.is-loading .btn__label { visibility: hidden; }
+    .btn.is-loading .btn__spinner { display: inline-block; position: absolute; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     /* Status text */
     .status { margin-top: 8px; color: var(--text-muted); font-size: 12px; }
     .status.ok { color: #22c55e; }
@@ -117,6 +124,15 @@
     ::-webkit-scrollbar-track { background: var(--surface); border-radius: 8px; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* Progress */
+    .progress { margin-top: 8px; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .progress-track { width: 100%; height: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 9999px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: var(--btn-default-bg); transition: width .18s ease; }
+    .progress-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+
+    /* Sets count */
+    .sets-count { margin-top: 6px; color: var(--text-muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -130,6 +146,7 @@
       <label class="label" for="selectionName">Selection</label>
       <input id="selectionName" class="input" type="text" value="No selection detected" readonly />
       <div id="miniSummary" class="status" style="margin-top:6px;">Variants: 0 · Component Props: 0</div>
+      <div id="setsCount" class="sets-count">Component Sets detected: 0</div>
     </section>
 
     <section class="section card">
@@ -146,94 +163,469 @@
       </div>
 
       <div id="status" class="status">Ready.</div>
+      <div id="progress" class="progress" style="display:none;">
+        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+        <div id="progressText" class="progress-label">0 / 0</div>
+      </div>
     </section>
 
     <div class="actions">
-      <button id="exportBtn" class="btn btn--secondary" disabled><span class="btn__label">Export</span></button>
-      <button id="copyBtn" class="btn btn--secondary" disabled><span class="btn__label">Copy</span></button>
-      <button id="generateBtn" class="btn btn--default"><span class="btn__label">Generate</span></button>
+      <button id="btnMD" class="btn btn--default">
+        <span class="btn__label">Export .md</span>
+        <span class="btn__spinner" aria-hidden="true"></span>
+      </button>
+      <button id="btnJSON" class="btn btn--secondary">
+        <span class="btn__label">Export .json</span>
+        <span class="btn__spinner" aria-hidden="true"></span>
+      </button>
+      <button id="btnCopy" class="btn btn--secondary">
+        <span class="btn__label">Copy</span>
+      </button>
+      <button id="btnGenerate" class="btn btn--default">
+        <span class="btn__label">Generate</span>
+      </button>
     </div>
   </div>
 
   <script>
-    const $ = (id) => document.getElementById(id);
-    function setStatus(msg, tone){
-      const el = $('status');
-      el.textContent = msg;
-      el.classList.remove('ok','warn','err');
-      if (tone) el.classList.add(tone);
+  // --- Perf flags ---
+var DEBUG = true; // set true to see verbose UI logs
+
+  // --- Mini utility ---
+  const $ = (id) => document.getElementById(id);
+  function dlog(){ if (DEBUG && typeof console !== 'undefined' && console.log) { try { console.log.apply(console, arguments); } catch(_){} } }
+
+  // --- Status helpers ---
+  function setStatus(msg, tone){
+    const el = $('status');
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove('ok','warn','err');
+    if (tone) el.classList.add(tone);
+  }
+  function setMiniSummary(vCount, pCount){
+    const el = $('miniSummary');
+    if (!el) return;
+    el.textContent = `Variants: ${vCount} · Component Props: ${pCount}`;
+  }
+
+  // --- Button loading state ---
+  // Disable/enable all action buttons (optionally keep one enabled)
+  function setAllActionButtonsDisabled(disabled, exceptId) {
+    var ids = ['btnMD','btnJSON','btnCopy','btnGenerate'];
+    for (var i=0;i<ids.length;i++){
+      var el = $(ids[i]);
+      if (!el) continue;
+      if (exceptId && ids[i] === exceptId) {
+        el.disabled = disabled ? false : false; // keep except enabled unless loading toggles it
+      } else {
+        el.disabled = !!disabled;
+      }
     }
-    function setMiniSummary(vCount, pCount){
-      $('miniSummary').textContent = `Variants: ${vCount} · Component Props: ${pCount}`;
+  }
+  function setButtonLoading(btnId, isLoading, labelWhile, labelAfter) {
+    const btn = $(btnId);
+    if (!btn) return;
+    const labelEl = btn.querySelector('.btn__label');
+    const spinnerEl = btn.querySelector('.btn__spinner');
+    if (isLoading) {
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      if (spinnerEl) spinnerEl.style.display = 'inline-block';
+      if (labelEl && labelWhile) labelEl.textContent = labelWhile;
+    } else {
+      btn.classList.remove('is-loading');
+      btn.disabled = false;
+      if (spinnerEl) spinnerEl.style.display = 'none';
+      if (labelEl && labelAfter) labelEl.textContent = labelAfter;
+    }
+  }
+
+  // --- Safe postMessage to code.ts ---
+  function postToCode(type, extra) {
+    const payload = { type };
+    if (extra && typeof extra === 'object') Object.assign(payload, extra);
+    try {
+      dlog('[UI] postMessage →', type, extra || {});
+      parent.postMessage({ pluginMessage: payload }, '*');
+    } catch (e) {
+      console.error('[UI] postMessage failed:', e);
+      setStatus('❌ Failed to contact plugin code', 'err');
+    }
+  }
+
+  // --- Throttle helpers ---
+  function rafThrottle(fn){
+    var scheduled = false, lastArgs = null;
+    return function(){
+      lastArgs = arguments;
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(function(){
+        scheduled = false;
+        fn.apply(null, lastArgs);
+      });
+    };
+  }
+  var now = function(){ return Date.now ? Date.now() : (new Date()).getTime(); };
+
+  // --- Terminal-like log in active textarea ---
+var logActive = false;
+// --- Intelligent autoscroll (follow when user is at bottom) ---
+var autoFollow = true;
+function areaAtBottom(el) {
+  if (!el) return true;
+  return (el.scrollHeight - el.clientHeight - el.scrollTop) < 6;
+}
+function attachScrollWatcher(el){
+  if (!el) return;
+  el.addEventListener('scroll', function(){
+    autoFollow = areaAtBottom(el);
+  });
+}
+function forceFollow(){
+  autoFollow = true;
+  var area = getActiveArea();
+  if (area) area.scrollTop = area.scrollHeight;
+}
+  var logBuffer = [];
+  var LOG_MAX_LINES = 200;
+  var _renderScheduled = false;
+  var _lastProgressPct = -1;
+  var _lastProgressTs = 0;
+  var _activeArea = null;
+  var _lastRenderedText = '';
+
+  // Track per-item lines to render terminal-like feedback
+  var _lastItemLabel = null;          // last label received from progress
+  var _lastItemLineIdx = -1;          // index in logBuffer for the last item's status line
+
+  function writeOrReplaceLine(index, text) {
+    if (index >= 0 && index < logBuffer.length) {
+      logBuffer[index] = text;
+    } else {
+      logBuffer.push(text);
+    }
+  }
+
+  function getActiveArea(){
+    if (_activeArea) return _activeArea;
+    var panelMd = $('panel-md');
+    var mdHidden = panelMd ? panelMd.getAttribute('aria-hidden') === 'true' : false;
+    _activeArea = (!mdHidden ? $('output-md') : $('output-json')) || $('output-md');
+    return _activeArea;
+  }
+  function ensureTerminalMode(on){
+    var area = getActiveArea();
+    if (area) area.classList.toggle('terminal', !!on);
+  }
+  function logClear(){ logBuffer = []; renderLog(); }
+  function logLine(line){
+    logBuffer.push(line);
+    renderLog();
+  }
+  function renderLog(){
+    if (_renderScheduled) return;
+    _renderScheduled = true;
+    requestAnimationFrame(function(){
+      _renderScheduled = false;
+      var area = getActiveArea();
+      if (!area) return;
+      // Trim buffer to keep UI snappy
+      if (logBuffer.length > LOG_MAX_LINES) {
+        logBuffer = logBuffer.slice(logBuffer.length - LOG_MAX_LINES);
+      }
+      var nextText = logBuffer.join('\n');
+      if (nextText !== _lastRenderedText) {
+        area.value = nextText;
+        _lastRenderedText = nextText;
+      }
+      if (autoFollow) {
+        area.scrollTop = area.scrollHeight;
+      }
+      var copyBtn = $('btnCopy');
+      if (copyBtn) copyBtn.disabled = (area.value.trim().length === 0);
+    });
+  }
+  function beginExportLog(kind){
+    logActive = true; logClear(); ensureTerminalMode(true);
+    var ts = new Date().toLocaleTimeString();
+    logLine('> ' + kind + ' export started  [' + ts + ']');
+    logLine('> Scanning file… (listing Component Sets as they are discovered)');
+    _lastItemLabel = null;
+    _lastItemLineIdx = -1;
+    forceFollow();
+  }
+  function endExportLog(filename){
+    // Mark last item as completed if any
+    if (_lastItemLabel && _lastItemLineIdx >= 0) {
+      writeOrReplaceLine(_lastItemLineIdx, '• ' + _lastItemLabel + ' — Check');
+    }
+    // Remove trailing progress bar line if present (we'll add a final 100% line)
+    if (logBuffer.length && /^\[.*\]/.test(logBuffer[logBuffer.length-1])) {
+      logBuffer.pop();
+    }
+    // Final progress line at 100%
+    logBuffer.push(progressBar(1,1) + ' — Completed');
+    var ts = new Date().toLocaleTimeString();
+    logLine('> Done. Wrote: ' + filename + '  [' + ts + ']');
+    logActive = false;
+  }
+  function progressBar(current, total){
+    var width = 28;
+    var pct = total > 0 ? current/total : 0;
+    if (pct < 0) pct = 0; if (pct > 1) pct = 1;
+    var filled = Math.round(width * pct);
+    var bar = Array(filled+1).join('#') + Array(width-filled+1).join('·');
+    return '[' + bar + '] ' + String(Math.round(pct * 100)) + '% (' + current + '/' + total + ')';
+  }
+  var updateProgressLog = rafThrottle(function(current, total, label){
+    var pct = total > 0 ? Math.round((current/total)*100) : 0;
+    var ts = now();
+    // throttle by percent/interval
+    if (pct === _lastProgressPct && (ts - _lastProgressTs) < 80 && label === _lastItemLabel) {
+      return;
+    }
+    _lastProgressPct = pct; _lastProgressTs = ts;
+
+    // 1) Handle per-item line feedback (like a terminal)
+    if (label) {
+      // when label changes, mark the previous as done
+      if (_lastItemLabel && _lastItemLabel !== label && _lastItemLineIdx >= 0) {
+        // Replace previous line: "• Name — scanning…" -> "• Name — Check"
+        writeOrReplaceLine(_lastItemLineIdx, '• ' + _lastItemLabel + ' — Check');
+      }
+      if (_lastItemLabel !== label) {
+        // Create a fresh line for the new label
+        _lastItemLineIdx = logBuffer.length; // next push index
+        logBuffer.push('• ' + label + ' — scanning…');
+        _lastItemLabel = label;
+      } else {
+        // keep the current label line saying scanning…
+        writeOrReplaceLine(_lastItemLineIdx, '• ' + label + ' — scanning…');
+      }
     }
 
-    // Pills as tabs
-    const tabs = [
-      { btn: $('tab-md'), panel: $('panel-md'), area: $('output-md'), fmt: 'md' },
-      { btn: $('tab-json'), panel: $('panel-json'), area: $('output-json'), fmt: 'json' }
-    ];
-    function activateTab(idx){
-      tabs.forEach((t,i)=>{
-        t.btn.classList.toggle('active', i===idx);
-        t.btn.setAttribute('aria-selected', i===idx ? 'true' : 'false');
-        t.panel.setAttribute('aria-hidden', i===idx ? 'false' : 'true');
+    // 2) Update / append progress bar line at the end
+    var bar = progressBar(Math.min(current, total), total);
+    var progressLine = bar + (label ? ' — ' + label + ' (generating...)' : '');
+    if (logBuffer.length && /^\[.*\]/.test(logBuffer[logBuffer.length-1])) {
+      logBuffer[logBuffer.length-1] = progressLine;
+    } else {
+      logBuffer.push(progressLine);
+    }
+
+    renderLog();
+  });
+
+  // --- Progress bar UI updater ---
+  var updateProgressBarUI = rafThrottle(function(pct, current, total, labelText){
+    var prog = $('progress');
+    var bar = $('progressBar');
+    var label = $('progressText');
+    if (prog) prog.style.display = total > 0 ? 'grid' : 'none';
+    if (bar) bar.style.width = pct + '%';
+    if (label) label.textContent = current + ' / ' + total + (labelText ? ' — ' + labelText : '');
+  });
+
+  // --- Tabs (pills) ---
+  var tabs = [
+    { btn: $('tab-md'), panel: $('panel-md'), area: $('output-md'), fmt: 'md' },
+    { btn: $('tab-json'), panel: $('panel-json'), area: $('output-json'), fmt: 'json' }
+  ];
+  function activateTab(idx){
+    for (var i=0;i<tabs.length;i++){
+      var t = tabs[i];
+      var on = i === idx;
+      if (t && t.btn) t.btn.classList.toggle('active', on);
+      if (t && t.btn) t.btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      if (t && t.panel) t.panel.setAttribute('aria-hidden', on ? 'false' : 'true');
+    }
+    _activeArea = (idx === 0 ? $('output-md') : $('output-json')) || $('output-md');
+    autoFollow = areaAtBottom(_activeArea);
+  }
+  tabs.forEach(function(t,i){
+    if (t && t.btn) t.btn.addEventListener('click', function(){
+      activateTab(i);
+      _lastRenderedText = '';
+    });
+  });
+
+  // --- Copy ---
+  (function(){
+    var copyBtn = $('btnCopy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var area = getActiveArea();
+        if (!area) return;
+        var text = area.value || '';
+        navigator.clipboard.writeText(text).then(function(){
+          setStatus('📋 Copied to clipboard', 'ok');
+        }).catch(function(){
+          setStatus('❌ Copy failed', 'err');
+        });
       });
     }
-    tabs.forEach((t,i)=> t.btn.addEventListener('click', ()=> activateTab(i)));
+  })();
 
-    // Copy
-    $('copyBtn').addEventListener('click', async () => {
-      const active = tabs.find(t=> t.panel.getAttribute('aria-hidden') === 'false');
-      if (!active) return;
-      const text = active.area.value || '';
-      try{
-        await navigator.clipboard.writeText(text);
-        setStatus('📋 Copied to clipboard', 'ok');
-      }catch(e){ setStatus('❌ Copy failed', 'err'); }
-    });
+  // --- Export All .md ---
+  (function(){
+    var btn = $('btnMD');
+    if (btn) {
+      btn.addEventListener('click', function(){
+        dlog('[UI] Click Export .md');
+        setStatus('📦 Exporting all to Markdown…');
+        activateTab(0);
+        beginExportLog('Markdown');
+        setAllActionButtonsDisabled(true, 'btnMD');
+        setButtonLoading('btnMD', true, 'Preparing…', null);
+        postToCode('ui-export-all-md');
+      });
+    }
+  })();
 
-    // Export JSON
-    $('exportBtn').addEventListener('click', () => {
-      const json = $('output-json').value || '';
-      if (!json.trim()) { setStatus('⚠️ Nothing to export', 'warn'); return; }
-      parent.postMessage({ pluginMessage: { type: 'ui-export', payload: json } }, '*');
-    });
+  // --- Export All .json ---
+  (function(){
+    var btn = $('btnJSON');
+    if (btn) {
+      btn.addEventListener('click', function(){
+        dlog('[UI] Click Export .json');
+        setStatus('📦 Exporting all to JSON…');
+        activateTab(1);
+        beginExportLog('JSON');
+        setAllActionButtonsDisabled(true, 'btnJSON');
+        setButtonLoading('btnJSON', true, 'Preparing…', null);
+        postToCode('ui-export-all-json');
+      });
+    }
+  })();
 
-    // Generate
-    $('generateBtn').addEventListener('click', () => {
-      setStatus('⚙️ Generating…');
-      parent.postMessage({ pluginMessage: { type: 'ui-generate', options: { format: 'md' } } }, '*');
-      parent.postMessage({ pluginMessage: { type: 'ui-generate', options: { format: 'json' } } }, '*');
-    });
+  // --- Generate (from selection) ---
+  (function(){
+    var btn = $('btnGenerate');
+    if (btn) {
+      btn.addEventListener('click', function(){
+        dlog('[UI] Click Generate');
+        setStatus('⚙️ Generating from selection…');
+        var md = $('output-md'); if (md) md.value = '';
+        var js = $('output-json'); if (js) js.value = '';
+        ensureTerminalMode(false);
+        var copyBtn = $('btnCopy'); if (copyBtn) copyBtn.disabled = true;
+        postToCode('ui-generate', { format: 'md' });
+        postToCode('ui-generate', { format: 'json' });
+      });
+    }
+  })();
 
-    // Init
-    window.addEventListener('load', () => {
-      parent.postMessage({ pluginMessage: { type: 'ui-ready' } }, '*');
-    });
+  // --- Init ---
+  window.addEventListener('load', function(){
+    dlog('[UI] onload → ui-ready');
+    var copyBtn = $('btnCopy'); if (copyBtn) copyBtn.disabled = true;
+    // Attach scroll watchers for intelligent follow
+    attachScrollWatcher($('output-md'));
+    attachScrollWatcher($('output-json'));
+    postToCode('ui-ready');
+    dlog('[UI] Ready posted to code');
+  });
 
-    // Receive messages from code.ts
-    window.onmessage = (event) => {
-      const msg = event.data.pluginMessage || {};
-      if (msg.type === 'selection-info'){
-        $('selectionName').value = msg.name || 'No selection detected';
-        setMiniSummary(msg.variantCount || 0, msg.propsCount || 0);
+  // --- Receive messages from code.ts ---
+  window.onmessage = function(event){
+    var data = event && event.data;
+    // Figma posts as { pluginMessage: {...} }
+    var msg = data && data.pluginMessage ? data.pluginMessage : null;
+    if (!msg || !msg.type) {
+      console.warn('[UI] onmessage (ignored)', event);
+      return;
+    }
+    dlog('[UI] onmessage ←', msg.type, msg);
+
+    if (msg.type === 'selection-info'){
+      var name = msg.name || 'No selection detected';
+      var input = $('selectionName');
+      if (input) input.value = name;
+      setMiniSummary(msg.variantCount || 0, msg.propsCount || 0);
+    }
+
+    if (msg.type === 'generation-result'){
+      if (msg.format === 'md') {
+        var a = $('output-md'); if (a) a.value = msg.output || '';
+      } else if (msg.format === 'json') {
+        var b = $('output-json'); if (b) b.value = msg.output || '';
       }
-      if (msg.type === 'generation-result'){
-        if (msg.format === 'md') $('output-md').value = msg.output || '';
-        if (msg.format === 'json') $('output-json').value = msg.output || '';
-        const hasContent = Boolean((msg.output||'').trim());
-        $('copyBtn').disabled = !hasContent;
-        $('exportBtn').disabled = !Boolean(($('output-json').value||'').trim());
+      var mdTxt = ($('output-md') && $('output-md').value || '').trim();
+      var jsTxt = ($('output-json') && $('output-json').value || '').trim();
+      var anyContent = (mdTxt.length + jsTxt.length) > 0;
+      var copyBtn = $('btnCopy'); if (copyBtn) copyBtn.disabled = !anyContent;
+    }
+
+    if (msg.type === 'status'){
+      var text = msg.message || '';
+      var tone;
+      if (/^✅/.test(text)) tone = 'ok';
+      else if (/^⚠️/.test(text)) tone = 'warn';
+      else if (/^❌/.test(text)) tone = 'err';
+      setStatus(text, tone);
+      if (logActive && text) logLine('> ' + text);
+    }
+
+    if (msg.type === 'progress') {
+      var total = Number(msg.total) || 0;
+      var current = Math.min(Number(msg.current) || 0, total);
+      var labelText = msg.label || '';
+      var pct = total > 0 ? Math.round((current / total) * 100) : 0;
+
+      updateProgressBarUI(pct, current, total, labelText);
+
+      if (logActive) updateProgressLog(current, total, labelText);
+    }
+
+    if (msg.type === 'sets-count') {
+      var c = Number(msg.count) || 0;
+      var el = $('setsCount');
+      if (el) el.textContent = 'Component Sets detected: ' + c;
+    }
+
+    if (msg.type === 'download-text' && msg.content && msg.filename) {
+      try {
+        var blob = new Blob([msg.content], { type: msg.mime || 'text/plain' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = msg.filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        setStatus('⬇️ Downloaded ' + msg.filename, 'ok');
+        if (logActive) endExportLog(msg.filename);
+      } catch (e) {
+        console.error('[UI] download-text failed', e);
+        setStatus('❌ Failed to create download', 'err');
       }
-      if (msg.type === 'status'){
-        const text = msg.message || '';
-        let tone = undefined;
-        if (/^✅/.test(text)) tone = 'ok';
-        else if (/^⚠️/.test(text)) tone = 'warn';
-        else if (/^❌/.test(text)) tone = 'err';
-        setStatus(text, tone);
+      // Re-enable actions and set proper labels after downloadable content is ready
+      setAllActionButtonsDisabled(false);
+      if (msg.filename && /\.md$/.test(msg.filename)) {
+        var btnM = $('btnMD');
+        if (btnM) {
+          btnM.classList.remove('is-loading');
+          var lbl = btnM.querySelector('.btn__label'); if (lbl) lbl.textContent = 'Download .md';
+          var spn = btnM.querySelector('.btn__spinner'); if (spn) spn.style.display = 'none';
+        }
+      } else if (msg.filename && /\.json$/.test(msg.filename)) {
+        var btnJ = $('btnJSON');
+        if (btnJ) {
+          btnJ.classList.remove('is-loading');
+          var lbl2 = btnJ.querySelector('.btn__label'); if (lbl2) lbl2.textContent = 'Download .json';
+          var spn2 = btnJ.querySelector('.btn__spinner'); if (spn2) spn2.style.display = 'none';
+        }
       }
-    };
+      // reset progress & button state
+      var p = $('progress'); if (p) p.style.display = 'none';
+      var pb = $('progressBar'); if (pb) pb.style.width = '0%';
+      var pt = $('progressText'); if (pt) pt.textContent = '0 / 0';
+      // (loading visuals already handled above)
+    }
+  };
   </script>
 </body>
 </html>
