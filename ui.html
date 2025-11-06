@@ -47,8 +47,8 @@
       -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Container sized for Figma plugin window 820x900 */
-    .container { max-width: 820px; height: 900px; padding: 16px; margin: 0 auto; }
+  /* Container sized for Figma plugin window (width fixed by plugin) - height is content-driven */
+  .container { max-width: 820px; padding: 16px; margin: 0 auto; }
 
     /* Header */
     h1 { margin: 0; font-size: 16px; font-weight: 700; }
@@ -145,8 +145,7 @@
     <section class="section card">
       <label class="label" for="selectionName">Selection</label>
       <input id="selectionName" class="input" type="text" value="No selection detected" readonly />
-      <div id="miniSummary" class="status" style="margin-top:6px;">Variants: 0 · Component Props: 0</div>
-      <div id="setsCount" class="sets-count">Component Sets detected: 0</div>
+  <div id="miniSummary" class="status" style="margin-top:6px;">Variants: 0 · Component Props: 0</div>
     </section>
 
     <section class="section card">

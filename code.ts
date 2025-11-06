@@ -4,7 +4,7 @@
 // UI contract: Generate/Copy are single-selection only. Full export runs ONLY on Export .md/.json clicks.
 // 'selection-info', 'generation-result', 'status', and optional 'download'.
 
-figma.showUI(__html__, { width: 820, height: 900 });
+figma.showUI(__html__, { width: 520, height: 600 });
 // Notify UI that backend is ready (for UIs that wait a ping)
 try {
   figma.ui.postMessage({ type: 'backend-ready' });
