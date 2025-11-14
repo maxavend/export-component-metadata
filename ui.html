@@ -133,6 +133,19 @@
 
     /* Sets count */
     .sets-count { margin-top: 6px; color: var(--text-muted); font-size: 12px; }
+
+    /* Preferences */
+    .checkbox-row { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--btn-default-bg); }
+    .prefs { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .prefs .hint { font-size: 12px; color: var(--text-muted); }
+    /* Switch (UI Kit) */
+    .switch { position: relative; display: inline-flex; align-items: center; width: 24px; height: 14px; vertical-align: middle; flex-shrink: 0; }
+    .switch-input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+    .switch-track { position: relative; width: 100%; height: 100%; border-radius: 9999px; cursor: pointer; background-color: #454545; transition: background-color 160ms ease; }
+    .switch-knob { position: absolute; top: 2px; left: 2px; width: 10px; height: 10px; border-radius: 9999px; background-color: #ffffff; transition: transform 160ms cubic-bezier(.22, 1, .36, 1); }
+    .switch-input:checked + .switch-track { background-color: #8e8e8e; }
+    .switch-input:checked + .switch-track + .switch-knob { transform: translateX(10px); }
   </style>
 </head>
 <body>
@@ -161,24 +174,36 @@
         <textarea id="output-json" class="textarea" placeholder="JSON will appear here" readonly></textarea>
       </div>
 
-      <div id="status" class="status">Ready.</div>
-      <div id="progress" class="progress" style="display:none;">
-        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
-        <div id="progressText" class="progress-label">0 / 0</div>
+      <div class="actions" style="justify-content:flex-end;">
+        <button id="btnCopy" class="btn btn--secondary">
+          <span class="btn__label">Copy</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="section card" id="prefsSection">
+      <div class="prefs">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <label class="switch" aria-label="Include hidden components">
+            <input id="includeHidden" type="checkbox" class="switch-input" />
+            <span class="switch-track"></span><span class="switch-knob"></span>
+          </label>
+          <div>
+            <div style="font-weight:600;">Include hidden components</div>
+            <div class="hint">Also export Component Sets and Components that start with "." or "_" or are marked as hidden.</div>
+          </div>
+        </div>
       </div>
     </section>
 
     <div class="actions">
-      <button id="btnMD" class="btn btn--default">
+      <button id="btnMD" class="btn btn--secondary">
         <span class="btn__label">Export .md</span>
         <span class="btn__spinner" aria-hidden="true"></span>
       </button>
       <button id="btnJSON" class="btn btn--secondary">
         <span class="btn__label">Export .json</span>
         <span class="btn__spinner" aria-hidden="true"></span>
-      </button>
-      <button id="btnCopy" class="btn btn--secondary">
-        <span class="btn__label">Copy</span>
       </button>
       <button id="btnGenerate" class="btn btn--default">
         <span class="btn__label">Generate</span>
@@ -202,10 +227,24 @@ var DEBUG = true; // set true to see verbose UI logs
     el.classList.remove('ok','warn','err');
     if (tone) el.classList.add(tone);
   }
+
+  function stripLeadingEmojis(text){
+    try {
+      // Remove common leading emoji markers we use from backend
+      return (text || '').replace(/^[✅⚠️❌🔄📦⬇️⚙️\s]+/, '');
+    } catch(_) {
+      return text || '';
+    }
+  }
   function setMiniSummary(vCount, pCount){
     const el = $('miniSummary');
     if (!el) return;
     el.textContent = `Variants: ${vCount} · Component Props: ${pCount}`;
+  }
+
+  function getIncludeHidden(){
+    var el = $('includeHidden');
+    return !!(el && el.checked);
   }
 
   // --- Button loading state ---
@@ -427,6 +466,22 @@ function forceFollow(){
     if (label) label.textContent = current + ' / ' + total + (labelText ? ' — ' + labelText : '');
   });
 
+  // --- Generate (single selection) progress state ---
+  var isGenMode = false;
+  var genTotal = 0;
+  var genCurrent = 0;
+
+  function showProgress(total, current, label){
+    var pct = total > 0 ? Math.round((current/total)*100) : 0;
+    updateProgressBarUI(pct, current, total, label || '');
+    var prog = $('progress'); if (prog) prog.style.display = total > 0 ? 'grid' : 'none';
+  }
+  function hideProgress(){
+    var p = $('progress'); if (p) p.style.display = 'none';
+    var pb = $('progressBar'); if (pb) pb.style.width = '0%';
+    var pt = $('progressText'); if (pt) pt.textContent = '0 / 0';
+  }
+
   // --- Tabs (pills) ---
   var tabs = [
     { btn: $('tab-md'), panel: $('panel-md'), area: $('output-md'), fmt: 'md' },
@@ -458,11 +513,29 @@ function forceFollow(){
         var area = getActiveArea();
         if (!area) return;
         var text = area.value || '';
-        navigator.clipboard.writeText(text).then(function(){
-          setStatus('📋 Copied to clipboard', 'ok');
-        }).catch(function(){
+        if (!text.trim()) return;
+
+        // Create a temporary textarea to copy from
+        var tempTextarea = document.createElement('textarea');
+        tempTextarea.value = text;
+        tempTextarea.style.position = 'absolute';
+        tempTextarea.style.left = '-9999px';
+        document.body.appendChild(tempTextarea);
+        tempTextarea.select();
+        tempTextarea.setSelectionRange(0, 99999); // For mobile
+
+        try {
+          var successful = document.execCommand('copy');
+          if (successful) {
+            setStatus('📋 Copied to clipboard', 'ok');
+          } else {
+            setStatus('❌ Copy failed', 'err');
+          }
+        } catch (err) {
           setStatus('❌ Copy failed', 'err');
-        });
+        }
+
+        document.body.removeChild(tempTextarea);
       });
     }
   })();
@@ -478,7 +551,7 @@ function forceFollow(){
         beginExportLog('Markdown');
         setAllActionButtonsDisabled(true, 'btnMD');
         setButtonLoading('btnMD', true, 'Preparing…', null);
-        postToCode('ui-export-all-md');
+        postToCode('ui-export-all-md', { includeHidden: getIncludeHidden() });
       });
     }
   })();
@@ -494,7 +567,7 @@ function forceFollow(){
         beginExportLog('JSON');
         setAllActionButtonsDisabled(true, 'btnJSON');
         setButtonLoading('btnJSON', true, 'Preparing…', null);
-        postToCode('ui-export-all-json');
+        postToCode('ui-export-all-json', { includeHidden: getIncludeHidden() });
       });
     }
   })();
@@ -505,13 +578,27 @@ function forceFollow(){
     if (btn) {
       btn.addEventListener('click', function(){
         dlog('[UI] Click Generate');
-        setStatus('⚙️ Generating from selection…');
+        setStatus('Generating from selection…');
         var md = $('output-md'); if (md) md.value = '';
         var js = $('output-json'); if (js) js.value = '';
         ensureTerminalMode(false);
+        logActive = false;
+        logClear();
         var copyBtn = $('btnCopy'); if (copyBtn) copyBtn.disabled = true;
-        postToCode('ui-generate', { format: 'md' });
-        postToCode('ui-generate', { format: 'json' });
+
+        // Start "generate" progress (two phases: md and json)
+        isGenMode = true;
+        genTotal = 2;
+        genCurrent = 0;
+        showProgress(genTotal, genCurrent, 'Preparing…');
+
+        // Disable export buttons while generating to avoid overlapping work
+        setAllActionButtonsDisabled(true, 'btnGenerate');
+        setButtonLoading('btnGenerate', true, 'Generating…', null);
+
+        // Ask backend for both formats
+        postToCode('ui-generate', { format: 'md', includeHidden: getIncludeHidden() });
+        postToCode('ui-generate', { format: 'json', includeHidden: getIncludeHidden() });
       });
     }
   })();
@@ -525,6 +612,7 @@ function forceFollow(){
     attachScrollWatcher($('output-json'));
     postToCode('ui-ready');
     dlog('[UI] Ready posted to code');
+    hideProgress();
   });
 
   // --- Receive messages from code.ts ---
@@ -555,6 +643,22 @@ function forceFollow(){
       var jsTxt = ($('output-json') && $('output-json').value || '').trim();
       var anyContent = (mdTxt.length + jsTxt.length) > 0;
       var copyBtn = $('btnCopy'); if (copyBtn) copyBtn.disabled = !anyContent;
+
+      // Advance progress for single-generate flow
+      if (isGenMode) {
+        genCurrent = Math.min(genTotal, genCurrent + 1);
+        showProgress(genTotal, genCurrent, (msg.format === 'md' ? 'Markdown' : 'JSON') + ' generated');
+        if (genCurrent >= genTotal) {
+          // Complete
+          setStatus('Generation completed.');
+          hideProgress();
+          isGenMode = false;
+          // Reset Generate button UI
+          setButtonLoading('btnGenerate', false, null, 'Generate');
+          // Re-enable export buttons
+          setAllActionButtonsDisabled(false);
+        }
+      }
     }
 
     if (msg.type === 'status'){
@@ -563,8 +667,14 @@ function forceFollow(){
       if (/^✅/.test(text)) tone = 'ok';
       else if (/^⚠️/.test(text)) tone = 'warn';
       else if (/^❌/.test(text)) tone = 'err';
-      setStatus(text, tone);
-      if (logActive && text) logLine('> ' + text);
+      var clean = stripLeadingEmojis(text);
+      setStatus(clean, tone);
+      // Reflect status feedback in the textarea ONLY during export (terminal mode)
+      if (logActive) { logLine(clean); }
+      // Show a tiny pre-progress if backend notifies that it's generating (useful if backend sends "Generating…" early)
+      if (isGenMode && /generating/i.test(clean)) {
+        showProgress(genTotal, genCurrent, 'Generating…');
+      }
     }
 
     if (msg.type === 'progress') {

@@ -4,7 +4,7 @@
 // UI contract: Generate/Copy are single-selection only. Full export runs ONLY on Export .md/.json clicks.
 // 'selection-info', 'generation-result', 'status', and optional 'download'.
 
-figma.showUI(__html__, { width: 520, height: 648 });
+figma.showUI(__html__, { width: 600, height: 720 });
 // Notify UI that backend is ready (for UIs that wait a ping)
 try {
   figma.ui.postMessage({ type: 'backend-ready' });
@@ -17,6 +17,13 @@ let __exportScanFormat: 'md' | 'json' | null = null;
 let __busy = false;
 // Gate: only allow full-file scans after user explicitly clicks Export .md/.json
 let __scanAllowed = false;
+
+// Scan/export options (exclude-hidden supports names starting with "." or "_" and invisible nodes)
+interface ScanOptions {
+  excludeHidden: boolean;   // when true, skip names starting with "." or "_" or invisible nodes
+  respectSort: boolean;     // respect Layers panel order
+}
+let __scanOptions: ScanOptions = { excludeHidden: false, respectSort: true };
 
 // ---------- Types ----------
 
@@ -34,6 +41,11 @@ interface PropDefLite {
 
 interface UIOptions {
   format: 'json' | 'md';
+  // Legacy flag from older UIs: when true, include hidden components.
+  includeHidden?: boolean;
+  // New flag (preferred): when true, exclude hidden components.
+  excludeHidden?: boolean;
+  respectSort?: boolean;
 }
 
 // A valid analysis target can be a Component Set or a single Component
@@ -162,26 +174,74 @@ function safeName(s: string): string {
   return s.replace(/[\\/:*?"<>|]+/g, '_').trim();
 }
 
+function isHiddenByName(name: string): boolean {
+  const n = (name || '').trim();
+  return n.startsWith('.') || n.startsWith('_');
+}
+function isInvisible(node: BaseNode): boolean {
+  try {
+    return 'visible' in (node as unknown as SceneNode) && (node as unknown as SceneNode).visible === false;
+  } catch { return false; }
+}
+function isHiddenComponent(node: ComponentSetNode | ComponentNode): boolean {
+  return isHiddenByName(node.name) || isInvisible(node as unknown as BaseNode);
+}
+
 // ---------- Streaming Scan & Generate All Helpers ----------
 
-async function scanAllComponentSets(): Promise<ComponentSetNode[]> {
+async function scanAllComponentSets(options: ScanOptions = __scanOptions): Promise<ComponentSetNode[]> {
   // Ensure pages are loaded (inline call to satisfy linter rule)
   if ('loadAllPagesAsync' in figma) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (figma as unknown as { loadAllPagesAsync: () => Promise<void> }).loadAllPagesAsync();
   }
-  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-find-method-advice
-  const sets = figma.root.findAll(n => n.type === 'COMPONENT_SET') as ComponentSetNode[];
-  log('scanAllComponentSets →', sets.length);
+
+  function gatherSetsInNode(node: BaseNode): ComponentSetNode[] {
+    const out: ComponentSetNode[] = [];
+    const childContainer = node as unknown as { children?: readonly BaseNode[] };
+    const hasChildren = childContainer.children;
+    if ((node as BaseNode).type === 'COMPONENT_SET') {
+      const setNode = node as ComponentSetNode;
+      const hidden = isHiddenComponent(setNode);
+      if (!(options.excludeHidden && hidden)) {
+        out.push(setNode);
+      }
+    }
+    if (Array.isArray(hasChildren)) {
+      for (const child of hasChildren as readonly BaseNode[]) {
+        out.push(...gatherSetsInNode(child));
+      }
+    }
+    return out;
+  }
+
+  let sets: ComponentSetNode[] = [];
+  if (options.respectSort) {
+    // Traverse pages and their subtrees in visual order (DFS preserving sibling order)
+    for (const page of figma.root.children) {
+      // Page order is already preserved in root.children
+      sets.push(...gatherSetsInNode(page));
+    }
+  } else {
+    // eslint-disable-next-line @figma/figma-plugins/dynamic-page-find-method-advice
+    sets = figma.root.findAll(n => n.type === 'COMPONENT_SET') as ComponentSetNode[];
+    if (options.excludeHidden) {
+      sets = sets.filter(s => !isHiddenComponent(s));
+    }
+    // Fallback sorting: alphabetical by name to keep results deterministic
+    sets.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }
+  log('scanAllComponentSets →', sets.length, '(excludeHidden:', options.excludeHidden, ', respectSort:', options.respectSort, ')');
   return sets;
 }
 
-async function streamScan(format: 'md' | 'json'): Promise<void> {
+async function streamScan(format: 'md' | 'json', options: ScanOptions = __scanOptions): Promise<void> {
   timeStart('streamScan');
   log('streamScan start; format =', format);
-  const sets = await scanAllComponentSets();
+  const sets = await scanAllComponentSets(options);
   __exportScanCache = sets;
   __exportScanFormat = format;
+  __scanOptions = { ...__scanOptions, ...options };
   post('scan-start', { total: sets.length });
   post('sets-count', { count: sets.length });
   for (let i = 0; i < sets.length; i++) {
@@ -192,8 +252,10 @@ async function streamScan(format: 'md' | 'json'): Promise<void> {
   post('scan-complete', { total: sets.length, format });
   log('streamScan complete; total =', sets.length);
   timeEnd('streamScan');
+  __scanOptions = { ...options };
 }
 
+// Note: __exportScanCache is already filtered/sorted by the last scanAllComponentSets call.
 async function streamGenerateAll(format: 'md' | 'json'): Promise<void> {
   timeStart('streamGenerateAll');
   log('streamGenerateAll start; format =', format);
@@ -471,16 +533,10 @@ function collectComponentPropsWithOrder(set: ComponentSetNode): { defs: Record<s
 
 // ---------- Export All (with progress) ----------
 
-async function exportAllMarkdown(): Promise<void> {
+async function exportAllMarkdown(options: ScanOptions = __scanOptions): Promise<void> {
   timeStart('exportAllMarkdown');
   log('exportAllMarkdown start');
-  // Ensure pages are loaded (inline call to satisfy linter rule)
-  if ('loadAllPagesAsync' in figma) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (figma as unknown as { loadAllPagesAsync: () => Promise<void> }).loadAllPagesAsync();
-  }
-  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-find-method-advice
-  const sets = figma.root.findAll(n => n.type === 'COMPONENT_SET') as ComponentSetNode[];
+  const sets = await scanAllComponentSets(options);
   if (sets.length === 0) {
     reportStatus('⚠️ No Component Sets found.', true);
     post('download-text', { filename: safeName(`${figma.root.name || 'component-metadata'}-all.md`), mime: 'text/markdown', content: '' });
@@ -512,16 +568,10 @@ async function exportAllMarkdown(): Promise<void> {
   timeEnd('exportAllMarkdown');
 }
 
-async function exportAllJSON(): Promise<void> {
+async function exportAllJSON(options: ScanOptions = __scanOptions): Promise<void> {
   timeStart('exportAllJSON');
   log('exportAllJSON start');
-  // Ensure pages are loaded (inline call to satisfy linter rule)
-  if ('loadAllPagesAsync' in figma) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (figma as unknown as { loadAllPagesAsync: () => Promise<void> }).loadAllPagesAsync();
-  }
-  // eslint-disable-next-line @figma/figma-plugins/dynamic-page-find-method-advice
-  const sets = figma.root.findAll(n => n.type === 'COMPONENT_SET') as ComponentSetNode[];
+  const sets = await scanAllComponentSets(options);
   if (sets.length === 0) {
     reportStatus('⚠️ No Component Sets found.', true);
     post('download-text', { filename: safeName(`${figma.root.name || 'component-metadata'}-all.json`), mime: 'application/json', content: JSON.stringify({ document: figma.root.name || 'Untitled', count: 0, items: [] }, null, 2) });
@@ -727,7 +777,20 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
         __busy = true;
         post('busy', { value: true });
         const fmt = (msg as unknown as { format?: 'md'|'json' }).format || 'md';
-        await streamScan(fmt);
+        const excludeHidden = ((): boolean => {
+          const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+          const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+          if (typeof viaNew === 'boolean') return viaNew;
+          if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+          if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+          if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+          return __scanOptions.excludeHidden;
+        })();
+        const opts: ScanOptions = {
+          excludeHidden,
+          respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? msg.options?.respectSort ?? __scanOptions.respectSort),
+        };
+        await streamScan(fmt, opts);
       } catch (e) {
         err('ui-scan error', e);
         const errMsg = (e && typeof e === 'object' && 'message' in e) ? (e as Error).message : String(e);
@@ -747,7 +810,20 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
         __busy = true;
         post('busy', { value: true });
         const fmt = (msg as unknown as { format?: 'md'|'json' }).format || 'md';
-        await streamScan(fmt);
+        const excludeHidden = ((): boolean => {
+          const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+          const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+          if (typeof viaNew === 'boolean') return viaNew;
+          if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+          if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+          if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+          return __scanOptions.excludeHidden;
+        })();
+        const opts: ScanOptions = {
+          excludeHidden,
+          respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? msg.options?.respectSort ?? __scanOptions.respectSort),
+        };
+        await streamScan(fmt, opts);
       } catch (e) {
         err('ui-scan error', e);
         const errMsg = (e && typeof e === 'object' && 'message' in e) ? (e as Error).message : String(e);
@@ -802,6 +878,12 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
         }
         reportStatus('⚙️ Generating…');
         const t = await resolveFromSelectionAsync();
+        const nodeForHiddenCheck = t.set ?? t.component;
+        if (nodeForHiddenCheck && __scanOptions.excludeHidden && isHiddenComponent(nodeForHiddenCheck)) {
+          reportStatus('Selection is hidden and excluded by filter.');
+          post('generation-result', { format: (msg as unknown as { format?: string }).format || msg.options?.format || 'md', output: '' });
+          break;
+        }
         if (!t.set && !t.component) {
           post('generation-result', { format: fmtTop, output: '' });
           reportStatus('⚠️ Please select a Component, Instance or Component Set.', true);
@@ -833,6 +915,12 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
         }
         reportStatus('⚙️ Generating…');
         const t = await resolveFromSelectionAsync();
+        const nodeForHiddenCheck = t.set ?? t.component;
+        if (nodeForHiddenCheck && __scanOptions.excludeHidden && isHiddenComponent(nodeForHiddenCheck)) {
+          reportStatus('Selection is hidden and excluded by filter.');
+          post('generation-result', { format: (msg as unknown as { format?: string }).format || msg.options?.format || 'md', output: '' });
+          break;
+        }
         if (!t.set && !t.component) {
           post('generation-result', { format: fmtTop, output: '' });
           reportStatus('⚠️ Please select a Component, Instance or Component Set.', true);
@@ -872,19 +960,71 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
       break;
     }
     case 'ui-export-all-md': {
-      await exportAllMarkdown();
+      const excludeHidden = ((): boolean => {
+        const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+        const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+        if (typeof viaNew === 'boolean') return viaNew;
+        if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+        if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+        if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+        return __scanOptions.excludeHidden;
+      })();
+      const opts: ScanOptions = {
+        excludeHidden,
+        respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? msg.options?.respectSort ?? __scanOptions.respectSort),
+      };
+      await exportAllMarkdown(opts);
       break;
     }
     case 'uiExportAllMd': { // alias
-      await exportAllMarkdown();
+      const excludeHidden = ((): boolean => {
+        const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+        const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+        if (typeof viaNew === 'boolean') return viaNew;
+        if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+        if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+        if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+        return __scanOptions.excludeHidden;
+      })();
+      const opts: ScanOptions = {
+        excludeHidden,
+        respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? msg.options?.respectSort ?? __scanOptions.respectSort),
+      };
+      await exportAllMarkdown(opts);
       break;
     }
     case 'ui-export-all-json': {
-      await exportAllJSON();
+      const excludeHidden = ((): boolean => {
+        const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+        const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+        if (typeof viaNew === 'boolean') return viaNew;
+        if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+        if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+        if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+        return __scanOptions.excludeHidden;
+      })();
+      const opts: ScanOptions = {
+        excludeHidden,
+        respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? msg.options?.respectSort ?? __scanOptions.respectSort),
+      };
+      await exportAllJSON(opts);
       break;
     }
     case 'uiExportAllJson': { // alias
-      await exportAllJSON();
+      const excludeHidden = ((): boolean => {
+        const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+        const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+        if (typeof viaNew === 'boolean') return viaNew;
+        if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+        if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+        if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+        return __scanOptions.excludeHidden;
+      })();
+      const opts: ScanOptions = {
+        excludeHidden,
+        respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? msg.options?.respectSort ?? __scanOptions.respectSort),
+      };
+      await exportAllJSON(opts);
       break;
     }
     // --- Compatibility shims (UI variants) ---
@@ -944,7 +1084,20 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
         __busy = true;
         __scanAllowed = true;
         post('busy', { value: true });
-        await streamScan('md');
+        const excludeHidden = ((): boolean => {
+          const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+          const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+          if (typeof viaNew === 'boolean') return viaNew;
+          if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+          if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+          if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+          return __scanOptions.excludeHidden;
+        })();
+        const opts: ScanOptions = {
+          excludeHidden,
+          respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? __scanOptions.respectSort),
+        };
+        await streamScan('md', opts);
         await streamGenerateAll('md');
       } catch (e) {
         reportStatus('❌ Export .md failed.', true);
@@ -961,7 +1114,20 @@ figma.ui.onmessage = async (msg: { type: string; options?: UIOptions; payload?: 
         __busy = true;
         __scanAllowed = true;
         post('busy', { value: true });
-        await streamScan('json');
+        const excludeHidden = ((): boolean => {
+          const viaNew = (msg as unknown as { excludeHidden?: boolean }).excludeHidden;
+          const viaOld = (msg as unknown as { includeHidden?: boolean }).includeHidden;
+          if (typeof viaNew === 'boolean') return viaNew;
+          if (typeof viaOld === 'boolean') return !viaOld; // legacy inverse
+          if (typeof msg.options?.excludeHidden === 'boolean') return !!msg.options.excludeHidden;
+          if (typeof msg.options?.includeHidden === 'boolean') return !msg.options.includeHidden;
+          return __scanOptions.excludeHidden;
+        })();
+        const opts: ScanOptions = {
+          excludeHidden,
+          respectSort: Boolean((msg as unknown as { respectSort?: boolean }).respectSort ?? __scanOptions.respectSort),
+        };
+        await streamScan('json', opts);
         await streamGenerateAll('json');
       } catch (e) {
         reportStatus('❌ Export .json failed.', true);
@@ -1022,10 +1188,9 @@ figma.on('selectionchange', async () => {
 });
 // ---------- Page loading utility ----------
 
-// Note: we still provide ensurePagesLoaded(), but to satisfy the linter's static analysis
-// we also call loadAllPagesAsync() inline right before each findAll() site above.
+// Note: kept as a fallback helper; currently unused.
 let __pagesLoaded = false;
-async function ensurePagesLoaded(): Promise<void> {
+async function _ensurePagesLoaded(): Promise<void> {
   if (!__pagesLoaded && 'loadAllPagesAsync' in figma) {
     log('ensurePagesLoaded → loading…');
     try {
