@@ -1,4 +1,9 @@
-# Export Component Metadata
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/lockup/horizontal-on-dark.svg" />
+    <img src="docs/brand/lockup/horizontal-color.svg" alt="Export Component Metadata" height="56" />
+  </picture>
+</h1>
 
 A Figma plugin that turns the properties of a **Component** or **Component Set** into documentation: readable **Markdown** and structured **JSON**, ready for Zeroheight, Supernova, Storybook or your own tooling. Document one component at a time, or every component in the file at once.
 
@@ -208,6 +213,10 @@ manifest.json     Figma plugin manifest
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
+
+## Brand
+
+Logo, app icon, colours and usage: [docs/brand](docs/brand/README.md).
 
 ## Author
 

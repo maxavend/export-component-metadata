@@ -58,4 +58,9 @@ The plugin is live at [figma.com/community/plugin/1568592066328136279](https://w
 
 ## Images
 
-Figma Community needs a **128 × 128 px icon** and a **1920 × 1080 px cover**. Build the cover from screenshots of the real UI (`docs/screenshot-dark.png`, `docs/screenshot-light.png`) so it matches what users get.
+| Asset | Size | File |
+|---|---|---|
+| Icon | 128 × 128 px | [`docs/publishing/icon-128.png`](publishing/icon-128.png) |
+| Cover | 1920 × 1080 px | [`docs/publishing/cover.png`](publishing/cover.png) |
+
+The icon is the default appearance of the app icon in the [brand kit](brand/README.md) (`docs/brand/png/` has it up to 1024 px). The cover uses screenshots of the real UI, so it matches what users get; if the UI changes, retake the screenshots and update the cover.
