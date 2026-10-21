@@ -2,6 +2,8 @@
 
 A Figma plugin that turns the properties of a **Component** or **Component Set** into documentation: readable **Markdown** and structured **JSON**, ready for Zeroheight, Supernova, Storybook or your own tooling. Document one component at a time, or every component in the file at once.
 
+**[Get it on Figma Community →](https://www.figma.com/community/plugin/1568592066328136279/export-component-metadata)**
+
 <p>
   <img src="docs/screenshot-dark.png" alt="Plugin window in Figma's dark theme showing the selected Button component, the All components section and the Markdown output" width="320" />
   <img src="docs/screenshot-light.png" alt="Plugin window in Figma's light theme showing the same output" width="320" />
@@ -161,6 +163,8 @@ Then, in the Figma desktop app, go to **Plugins → Development → Import plugi
 | `npm run lint` | ESLint with Figma's plugin rules |
 
 `code.js` and `dist/` are build output and aren't committed.
+
+To release a new version on Figma Community, follow [docs/PUBLISHING.md](docs/PUBLISHING.md).
 
 ### Project structure
 

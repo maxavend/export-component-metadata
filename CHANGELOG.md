@@ -16,6 +16,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - Generate and Export All can't run at the same time; each disables the other's buttons while it runs.
 
+### Fixed
+
+- `manifest.json` now uses the id of the plugin published on Figma Community (`1568592066328136279`). The previous id (`1567575139776388387`) doesn't belong to a published plugin, so publishing an update from `main` would have failed.
+
 ## [2.0.0] - 2026-10-21
 
 ### Changed
