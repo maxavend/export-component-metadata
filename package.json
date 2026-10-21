@@ -1,23 +1,35 @@
 {
   "name": "export-component-metadata",
-  "version": "1.0.0",
-  "description": "Your Figma Plugin",
+  "version": "2.0.0",
+  "description": "Figma plugin that exports component properties as Markdown and JSON documentation.",
   "main": "code.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run build:code && npm run build:ui",
+    "build:code": "tsc -p tsconfig.json",
+    "build:ui": "vite build",
     "lint": "eslint --ext .ts,.tsx --ignore-pattern node_modules .",
     "lint:fix": "eslint --ext .ts,.tsx --ignore-pattern node_modules --fix .",
-    "watch": "npm run build -- --watch"
+    "watch": "tsc -p tsconfig.json --watch",
+    "watch:ui": "vite build --watch"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Maximiliano Avendaño Rincón (https://github.com/maxavend)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maxavend/export-component-metadata.git"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "devDependencies": {
     "@figma/eslint-plugin-figma-plugins": "*",
     "@figma/plugin-typings": "^1.119.0",
     "@typescript-eslint/eslint-plugin": "^6.12.0",
     "@typescript-eslint/parser": "^6.12.0",
     "eslint": "^8.54.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "8.3.3",
+    "vite-plugin-singlefile": "2.3.3"
   },
   "eslintConfig": {
     "extends": [
@@ -41,6 +53,16 @@
       ]
     }
   },
-  "keywords": [],
-  "type": "commonjs"
+  "keywords": [
+    "figma",
+    "figma-plugin",
+    "design-system",
+    "documentation",
+    "components"
+  ],
+  "type": "commonjs",
+  "dependencies": {
+    "@rogieking/figui3": "10.0.6"
+  },
+  "private": true
 }

@@ -4,7 +4,7 @@
 // UI contract: receives 'ui-ready', 'ui-generate', 'ui-export'; sends back
 // 'selection-info', 'generation-result' (one per format), 'status' and 'download'.
 
-figma.showUI(__html__, { width: 820, height: 900 });
+figma.showUI(__html__, { themeColors: true, width: 320, height: 560 });
 
 // ---------- Types ----------
 

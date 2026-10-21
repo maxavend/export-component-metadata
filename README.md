@@ -1,155 +1,176 @@
 # Export Component Metadata
 
-**Export Component Metadata** is a professional-grade Figma plugin that allows designers, developers, and documentation teams to extract and visualize structured metadata from any **Component** or **Component Set**.  
-It generates clear, well-organized documentation in **Markdown** and **JSON**, suitable for integration with documentation platforms like **Zeroheight**, **Supernova**, or **Storybook**.
+A Figma plugin that turns the properties of a **Component** or **Component Set** into documentation: readable **Markdown** and structured **JSON**, ready for Zeroheight, Supernova, Storybook or your own tooling.
 
----
-
-## Overview
-
-This plugin simplifies the process of documenting **Component Properties** (Variant, Boolean, Text and Instance Swap) directly from Figma — ensuring consistent and standardized component documentation across teams.
-
-You can select either:
-- A **Component Set** (to include all variants)
-- A **single Component** (even if it doesn’t belong to a set)
-
-Then the plugin automatically extracts all available **properties**, orders them intelligently (using a stable heuristic similar to Figma’s UI order), and generates a clean Markdown summary or JSON export.
+<p>
+  <img src="docs/screenshot-dark.png" alt="Plugin window in Figma's dark theme showing the Markdown output for a Button component" width="320" />
+  <img src="docs/screenshot-light.png" alt="Plugin window in Figma's light theme showing the same output" width="320" />
+</p>
 
 ---
 
 ## Features
 
-- **Markdown or JSON Export** — auto‑generate readable or structured metadata documentation.
-- **Full Property Support** — detects and lists:
-  - `VARIANT` groups (values and default variant)
-  - `BOOLEAN` toggles
-  - `TEXT` inputs
-  - `INSTANCE_SWAP` with default and preferred instances (resolved by name for local and published library components)
-- **Component‑Level Detection** — works with both **Component Sets** and **single Components**.
-- **Heuristic Ordering** — preserves an order similar to Figma’s property panel (e.g., “Has Left Icon” before “Left Icon”).
-- **Inline Status Feedback** — see real‑time messages in the plugin UI.
-- **One‑Click Export** — export metadata in `.json` format for reuse or automation pipelines.
+- **Markdown and JSON in one click.** Both formats are generated together; switch between them with the segmented control.
+- **Every component property type:**
+  - `VARIANT` — values and default variant
+  - `BOOLEAN` — default value
+  - `TEXT` — default text
+  - `INSTANCE_SWAP` — default component and preferred instances, resolved to component names
+- **Works from any selection.** Select a Component Set, one of its variants, a single Component or an Instance; the plugin resolves it to the main component or set.
+- **Readable order.** Variants first, then the other properties with each `Has X` boolean right before the `X` it controls.
+- **Copy and Export.** Copy the active output to the clipboard or save the JSON as `<Component name>.json`.
+- **Native Figma look.** Built with [FigUI3](https://github.com/rogie/figui3) and Figma's theme tokens, so it follows Figma's light and dark themes.
 
 ---
 
-## Why This Plugin?
+## Usage
 
-Figma doesn’t expose the UI order of properties via the Plugin API.  
-**Export Component Metadata** solves this by implementing a **heuristic ordering logic** that intelligently groups and pairs related properties, making the output predictable and human-readable — without clutter.
+1. Select a Component, Component Set or Instance in Figma.
+2. Run **Plugins → Export Component Metadata**.
+3. Click **Generate**.
+4. Pick **Markdown** or **JSON**, then **Copy** it or **Export** the JSON file.
 
-This allows:
-- Design systems teams to generate accurate component documentation in seconds.
-- Developers to import property definitions for code token mapping.
-- Product designers to share structured specs directly from Figma.
-
----
-
-## Technical Architecture
-
-### Core API Used
-| Area | API / Method | Purpose |
-|------|---------------|---------|
-| Node Resolution | `figma.currentPage.selection` + `getMainComponentAsync()` | To detect the selected node and resolve it to a Component or Component Set |
-| Metadata Extraction | `componentPropertyDefinitions` | To retrieve property names, types, and default values |
-| Async Access | `figma.getNodeByIdAsync()` | Modern async API to safely fetch nodes |
-| Preferred Instances | `figma.loadAllPagesAsync()` + `findAllWithCriteria()`, `figma.importComponentByKeyAsync()` / `importComponentSetByKeyAsync()` | Resolve preferred values (which reference components by key) to component names |
-| Communication | `figma.ui.postMessage()` / `figma.ui.onmessage` | Bidirectional data flow between plugin backend and UI |
-| Export | `download` message → Blob download in the UI | Save the JSON as `<Component name>.json` |
+The Selection section shows the detected component with its variant and property counts, and updates as you change the selection.
 
 ---
 
-## How It Works
+## Output
 
-1. **Select** a Component or Component Set in Figma.
-2. **Open the Plugin** → "Export Component Metadata".
-3. Click **Generate** to produce Markdown and JSON documentation.
-4. Copy or Export results with one click.
-
-If a Component is selected (not a set), the plugin still outputs all its **Component Properties** (booleans, text, instance swaps, etc.) even if there are no variants.
-
----
-
-## Installation (Development)
-
-1. Clone or download this repository.
-2. Run:
-   ```bash
-   npm install
-   ```
-3. Compile the plugin with:
-   ```bash
-   npm run build
-   ```
-4. In Figma, go to **Plugins → Development → New Plugin...**
-   and select the `manifest.json` file from this project.
-5. Launch the plugin via **Plugins → Development → Export Component Metadata**.
-
----
-
-## Technology Stack
-
-- **Language:** TypeScript
-- **UI:** Vanilla HTML + CSS (using a custom Figma UI Kit)
-- **Figma APIs:** Plugin API (v1.0+)
-- **Build Tool:** TypeScript Compiler (tsc)
-- **Export Format:** Markdown + JSON
-
----
-
-## Example Output
+### Markdown
 
 ```markdown
 # Button
 
 ## Overview
 - Variants: 105
-- Component Properties: 8
+- Component Properties: 5
 
 ## Component Props
 [VARIANT] **Size**  
 Values: L, M, S  
 Default: L
 
-[VARIANT] **Variant**  
-Values: Primary, Secondary, Tertiary, Tonal, Danger/Text, Overlay  
-Default: Primary
-
 [BOOLEAN] **Has Left Icon**  
 Values: True / False  
 Default: true
 
 [INSTANCE SWAP] **Left Icon**  
-Default: dashboard_customize  
+Default: icon/dashboard_customize  
 Preferred Instances (3): `icon/chevron-left`, `icon/back`, `icon/menu`
 
-[TEXT] **Text**  
+[TEXT] **Label**  
 Default: Body text
-
 ```
 
-Variant properties are listed first, followed by the other properties. Preferred instances that are neither in the file nor in a published library are counted as "not resolved".
+Each line of a property block ends with two spaces, so it renders as separate lines in Markdown.
+
+### JSON
+
+`componentProps` keeps the raw values from the Figma API (node ids, component keys); `pretty` is a simplified view with resolved names.
+
+```json
+{
+  "name": "Button",
+  "overview": { "variantsCount": 105, "componentPropsCount": 5 },
+  "componentProps": [
+    { "name": "Size", "type": "VARIANT", "defaultValue": "L", "variantOptions": ["L", "M", "S"] },
+    {
+      "name": "Left Icon",
+      "type": "INSTANCE_SWAP",
+      "defaultValue": "10:1",
+      "defaultInstanceName": "icon/dashboard_customize",
+      "preferredValuesCount": 3,
+      "preferredValuesRaw": [{ "type": "COMPONENT", "key": "a1b2c3…" }],
+      "preferredInstanceNames": ["icon/chevron-left", "icon/back", "icon/menu"]
+    }
+  ],
+  "pretty": {
+    "componentProps": [
+      { "name": "Size", "type": "VARIANT", "default": "L", "values": ["L", "M", "S"] },
+      {
+        "name": "Left Icon",
+        "type": "INSTANCE_SWAP",
+        "default": "icon/dashboard_customize",
+        "preferredInstancesCount": 3,
+        "preferredInstances": ["icon/chevron-left", "icon/back", "icon/menu"]
+      }
+    ]
+  }
+}
+```
+
+### Notes and limits
+
+- **Property order** is a heuristic: the Plugin API doesn't expose the order of Figma's properties panel.
+- **Preferred instances** are stored by Figma as component keys. The plugin looks them up among the file's components first, then imports them from published libraries. Components that are in neither place are counted as "not resolved".
+- To find local components the plugin loads every page of the file (`figma.loadAllPagesAsync()`), only when the component has preferred instances. On very large files this can take a moment.
 
 ---
 
-## Developer Notes
+## Development
 
-- Built using **official Figma Plugin API**:  
-  [https://www.figma.com/plugin-docs/api/](https://www.figma.com/plugin-docs/api/)
-- The plugin avoids deprecated sync methods like `getNodeById` and fully supports async operations.
-- The code structure follows a clear separation:
-  - `code.ts` → plugin logic (Figma side)
-  - `ui.html` → user interface (browser side)
+Requirements: Node.js 20.19+ or 22.12+ (required by Vite 8).
+
+```bash
+npm install
+npm run build
+```
+
+Then, in the Figma desktop app, go to **Plugins → Development → Import plugin from manifest…** and pick this project's `manifest.json`.
+
+| Script | What it does |
+|---|---|
+| `npm run build` | Compiles `code.ts` → `code.js` and bundles the UI → `dist/ui.html` |
+| `npm run build:code` / `npm run build:ui` | Each half of the build on its own |
+| `npm run watch` / `npm run watch:ui` | Rebuild the plugin code or the UI on change |
+| `npm run lint` | ESLint with Figma's plugin rules |
+
+`code.js` and `dist/` are build output and aren't committed.
+
+### Project structure
+
+```
+code.ts           Plugin logic (runs in Figma's sandbox)
+ui/
+  index.html      UI markup (fig-* web components)
+  main.js         UI logic and messaging
+  styles.css      Layout with Figma tokens only
+  icons.js        SVG icons not included in FigUI3
+vite.config.mjs   Bundles ui/ into a single dist/ui.html (Figma requires one HTML file)
+manifest.json     Figma plugin manifest
+```
+
+### UI ↔ plugin messages
+
+| Direction | Type | Payload |
+|---|---|---|
+| UI → plugin | `ui-ready` | — |
+| UI → plugin | `ui-generate` | — |
+| UI → plugin | `ui-export` | `{ payload }` — the JSON text to save |
+| plugin → UI | `selection-info` | `{ name, variantCount, propsCount }` |
+| plugin → UI | `generation-result` | `{ format: 'md' \| 'json', output }` — sent for both formats, also on errors |
+| plugin → UI | `status` | `{ message }` |
+| plugin → UI | `download` | `{ filename, content }` |
+
+### Tech stack
+
+- **Plugin:** TypeScript, Figma Plugin API (`documentAccess: dynamic-page`, async APIs only)
+- **UI:** [FigUI3](https://github.com/rogie/figui3) core components (MIT), plain JavaScript, Figma `--figma-color-*` tokens via `themeColors`
+- **Build:** `tsc` for the plugin, Vite + `vite-plugin-singlefile` for the UI
+- **Network:** none; the manifest allows no domains and the UI loads nothing remotely
 
 ---
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## Author
-**Maximiliano Avendaño Rincón**  
-Design Systems Engineer / Plugin Developer  
-📍 SCL 
-GitHub: [@maxavend](https://github.com/maxavend)
 
----
+**Maximiliano Avendaño Rincón** — Design Systems Engineer · Santiago, Chile
+GitHub: [@maxavend](https://github.com/maxavend)
 
 ## License
 
-MIT License — use, modify, and distribute freely with attribution.
+[MIT](LICENSE)

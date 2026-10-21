@@ -1,0 +1,156 @@
+/* Figma tokens only: Figma injects --figma-color-* (themeColors: true);
+   FigUI3 provides light-dark() fallbacks for previews outside Figma. */
+
+/* Outside Figma, let the theme class drive FigUI3's fallbacks */
+html.figma-dark { color-scheme: dark; }
+html.figma-light { color-scheme: light; }
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--figma-color-bg);
+  color: var(--figma-color-text);
+  font-family: Inter, var(--font-family);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* FigUI3 gives main/section their own padding and margins; reset them */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 4px 16px 12px;
+  border-bottom: 1px solid var(--figma-color-border);
+}
+
+/* The 40px header already carries its spacing; cancel the section gap below it */
+.section > fig-header {
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: -8px;
+}
+
+/* FigUI3 adds 8px to a header's first h3; align it with the content */
+.section > fig-header > h3:first-child {
+  margin: 0;
+  padding-left: 0;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+/* Selection row */
+.selection {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  min-width: 0;
+  color: var(--figma-color-text-component);
+}
+
+.selection__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-left: -4px;
+  color: var(--figma-color-icon-component, var(--figma-color-text-component));
+}
+
+.selection__icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.selection__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.selection[data-empty="true"] {
+  color: var(--figma-color-text-secondary);
+}
+
+.selection[data-empty="true"] .selection__icon {
+  display: none;
+}
+
+.selection[data-empty="true"] .selection__name {
+  font-weight: 400;
+}
+
+.meta,
+.status {
+  margin: 0;
+  color: var(--figma-color-text-secondary);
+}
+
+/* Output */
+.section--output {
+  flex: 1;
+  min-height: 0;
+  border-bottom: 0;
+}
+
+.section--output fig-segmented-control {
+  width: 100%;
+}
+
+.output {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: var(--figma-color-bg-secondary);
+  color: var(--figma-color-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 16px;
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+}
+
+.output::placeholder {
+  color: var(--figma-color-text-tertiary);
+}
+
+.output:focus-visible {
+  outline: var(--figma-focus-outline);
+  outline-offset: var(--figma-focus-outline-offset);
+}
+
+.output[hidden] {
+  display: none;
+}
+
+.status[data-tone="ok"] { color: var(--figma-color-text-success); }
+.status[data-tone="warn"] { color: var(--figma-color-text-warning); }
+.status[data-tone="err"] { color: var(--figma-color-text-danger); }
+
+/* Footer stays at the bottom, aligned with the 16px content edge */
+.app > fig-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Export Component Metadata</title>
+</head>
+<body>
+  <main class="app">
+    <section class="section" aria-labelledby="selection-title">
+      <fig-header borderless>
+        <h3 id="selection-title">Selection</h3>
+      </fig-header>
+      <div class="selection" id="selection" data-empty="true">
+        <span class="selection__icon" id="selectionIcon" aria-hidden="true"></span>
+        <span class="selection__name" id="selectionName">No selection detected</span>
+      </div>
+      <p class="meta" id="miniSummary">Variants: 0 · Component Props: 0</p>
+    </section>
+
+    <section class="section section--output" aria-labelledby="output-title">
+      <fig-header borderless>
+        <h3 id="output-title">Output</h3>
+      </fig-header>
+      <fig-segmented-control id="format" name="format" value="md" aria-label="Output format">
+        <fig-segment value="md" selected="true">Markdown</fig-segment>
+        <fig-segment value="json">JSON</fig-segment>
+      </fig-segmented-control>
+      <textarea id="output-md" class="output" readonly spellcheck="false"
+        aria-label="Markdown output" placeholder="Markdown will appear here"></textarea>
+      <textarea id="output-json" class="output" readonly spellcheck="false" hidden
+        aria-label="JSON output" placeholder="JSON will appear here"></textarea>
+      <p class="status" id="status" role="status" aria-live="polite">Ready.</p>
+    </section>
+
+    <fig-footer sticky>
+      <fig-button id="exportBtn" variant="secondary" disabled>Export</fig-button>
+      <fig-button id="copyBtn" variant="secondary" disabled>Copy</fig-button>
+      <fig-button id="generateBtn" variant="primary">Generate</fig-button>
+    </fig-footer>
+  </main>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
