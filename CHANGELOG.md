@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-10-21
+
+### Added
+
+- **Export All:** a new *All components* section exports every component in the file as one Markdown (`<File name>-all.md`) or JSON (`<File name>-all.json`) file. It includes every Component Set and every standalone Component with properties, on all pages.
+- The section shows how many component sets and components will be exported, and the status line shows progress while the export runs.
+- **Include hidden components** switch. Hidden components (hidden layers and names starting with `.` or `_`) are skipped by default.
+- A component that can't be read gets an error entry instead of stopping the export.
+- New plugin messages `ui-scan-all`, `ui-export-all`, `scan-all-result`, `export-all-progress` and `export-all-result`. The existing messages are unchanged.
+
+### Changed
+
+- Generate and Export All can't run at the same time; each disables the other's buttons while it runs.
+
 ## [2.0.0] - 2026-10-21
 
 ### Changed
@@ -48,6 +62,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 - First release: Markdown and JSON metadata for Component Sets and single Components, with variant, boolean, text and instance swap properties.
 
+[2.1.0]: https://github.com/maxavend/export-component-metadata/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/maxavend/export-component-metadata/compare/v1.1.0...v2.0.0
 [1.1.0]: https://github.com/maxavend/export-component-metadata/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/maxavend/export-component-metadata/releases/tag/v1.0.0

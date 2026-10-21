@@ -3,6 +3,8 @@
 // generate Markdown + JSON with Variant groups and Component Properties.
 // UI contract: receives 'ui-ready', 'ui-generate', 'ui-export'; sends back
 // 'selection-info', 'generation-result' (one per format), 'status' and 'download'.
+// Export All: receives 'ui-scan-all', 'ui-export-all'; sends back
+// 'scan-all-result', 'export-all-progress' and 'export-all-result'.
 
 figma.showUI(__html__, { themeColors: true, width: 320, height: 560 });
 
@@ -236,7 +238,7 @@ function toMarkdown(name: string, variantCount: number, props: PropDefLite[]): s
   return lines.join('\n');
 }
 
-function toJSONSummary(name: string, variantCount: number, props: PropDefLite[]): string {
+function toJSONData(name: string, variantCount: number, props: PropDefLite[]): Record<string, unknown> {
   const prettyProps: PrettyProp[] = props.map((d) => {
     const pretty: PrettyProp = { name: d.name, type: d.type };
     if (d.type === 'INSTANCE_SWAP') {
@@ -249,13 +251,96 @@ function toJSONSummary(name: string, variantCount: number, props: PropDefLite[])
     }
     return pretty;
   });
-  const payload = {
+  return {
     name,
     overview: { variantsCount: variantCount, componentPropsCount: props.length },
     componentProps: props,
     pretty: { componentProps: prettyProps },
   };
-  return JSON.stringify(payload, null, 2);
+}
+
+function toJSONSummary(name: string, variantCount: number, props: PropDefLite[]): string {
+  return JSON.stringify(toJSONData(name, variantCount, props), null, 2);
+}
+
+// ---------- Export All (every page) ----------
+
+type Format = 'md' | 'json';
+
+let exportingAll = false;
+
+// Names starting with "." or "_" mark private components in Figma
+function isHidden(node: Target): boolean {
+  const name = node.name.trim();
+  return name.startsWith('.') || name.startsWith('_') || !node.visible;
+}
+
+function hasProps(component: ComponentNode): boolean {
+  try {
+    return Object.keys(component.componentPropertyDefinitions).length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Every Component Set, plus standalone Components that have properties, page by
+// page. Variants are documented through their set.
+async function scanAllTargets(includeHidden: boolean): Promise<Target[]> {
+  await figma.loadAllPagesAsync();
+  const targets: Target[] = [];
+  for (const page of figma.root.children) {
+    for (const n of page.findAllWithCriteria({ types: ['COMPONENT_SET', 'COMPONENT'] })) {
+      if (n.type === 'COMPONENT' && ((n.parent && n.parent.type === 'COMPONENT_SET') || !hasProps(n))) continue;
+      if (!includeHidden && isHidden(n)) continue;
+      targets.push(n);
+    }
+  }
+  return targets;
+}
+
+function postScanResult(targets: Target[]): void {
+  const setCount = targets.filter((t) => t.type === 'COMPONENT_SET').length;
+  post('scan-all-result', { setCount, componentCount: targets.length - setCount });
+}
+
+async function exportAll(format: Format, includeHidden: boolean): Promise<void> {
+  reportStatus('⚙️ Scanning all pages…');
+  const targets = await scanAllTargets(includeHidden);
+  postScanResult(targets);
+  if (!targets.length) {
+    reportStatus('⚠️ No components found in this file.', true);
+    post('export-all-result', { format, filename: '', content: '' });
+    return;
+  }
+
+  localNamesByKey = null; // names may have changed since the last run
+  const mdParts: string[] = [];
+  const items: Record<string, unknown>[] = [];
+  let failed = 0;
+  for (let i = 0; i < targets.length; i++) {
+    const t = targets[i];
+    post('export-all-progress', { current: i + 1, total: targets.length, name: t.name });
+    try {
+      const props = await collectProps(t);
+      const variantCount = variantCountOf(t);
+      if (format === 'md') mdParts.push(toMarkdown(t.name, variantCount, props));
+      else items.push(toJSONData(t.name, variantCount, props));
+    } catch (e) {
+      failed++;
+      console.error(`Export All: could not read ${t.name}:`, e);
+      if (format === 'md') mdParts.push(`# ${t.name}\n\n> ⚠️ Could not read this component: ${errorMessage(e)}\n`);
+      else items.push({ name: t.name, error: errorMessage(e) });
+    }
+  }
+
+  const content = format === 'md'
+    ? mdParts.join('\n---\n\n')
+    : JSON.stringify({ document: figma.root.name, count: items.length, items }, null, 2);
+  const filename = `${toFileName(figma.root.name)}-all.${format}`;
+  const total = `${targets.length} component${targets.length === 1 ? '' : 's'}`;
+  if (failed) reportStatus(`⚠️ Exported ${total}; ${failed} could not be read.`, true);
+  else reportStatus(`✅ Exported ${total}.`);
+  post('export-all-result', { format, filename, content });
 }
 
 // ---------- Selection info push ----------
@@ -279,7 +364,7 @@ async function sendSelectionInfoAsync(): Promise<void> {
 
 // ---------- UI events ----------
 
-figma.ui.onmessage = async (msg: { type: string; payload?: string }) => {
+figma.ui.onmessage = async (msg: { type: string; payload?: string; format?: Format; includeHidden?: boolean }) => {
   switch (msg.type) {
     case 'ui-ready': {
       await sendSelectionInfoAsync();
@@ -321,6 +406,29 @@ figma.ui.onmessage = async (msg: { type: string; payload?: string }) => {
       }
       // The UI saves the file and reports the status
       post('download', { filename: `${toFileName(name)}.json`, content });
+      break;
+    }
+    case 'ui-scan-all': {
+      try {
+        postScanResult(await scanAllTargets(Boolean(msg.includeHidden)));
+      } catch (e) {
+        post('scan-all-result', { error: errorMessage(e) });
+      }
+      break;
+    }
+    case 'ui-export-all': {
+      if (exportingAll) break;
+      const format: Format = msg.format === 'json' ? 'json' : 'md';
+      exportingAll = true;
+      try {
+        await exportAll(format, Boolean(msg.includeHidden));
+      } catch (e) {
+        console.error('Export All error:', e);
+        reportStatus(`❌ Error while exporting: ${errorMessage(e)}`, true);
+        post('export-all-result', { format, filename: '', content: '' });
+      } finally {
+        exportingAll = false;
+      }
       break;
     }
     default:

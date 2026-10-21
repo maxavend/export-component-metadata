@@ -102,6 +102,17 @@ body {
   color: var(--figma-color-text-secondary);
 }
 
+/* All components */
+.export-all {
+  display: flex;
+  gap: 8px;
+}
+
+.export-all fig-button {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Output */
 .section--output {
   flex: 1;

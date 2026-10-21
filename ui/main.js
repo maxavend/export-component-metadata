@@ -8,6 +8,11 @@ import { icons } from './icons.js';
 //   plugin → UI: 'selection-info' { name, variantCount, propsCount },
 //                'generation-result' { format: 'md' | 'json', output },
 //                'status' { message }, 'download' { filename, content }
+// Export All
+//   UI → plugin: 'ui-scan-all' { includeHidden }, 'ui-export-all' { format, includeHidden }
+//   plugin → UI: 'scan-all-result' { setCount, componentCount } | { error },
+//                'export-all-progress' { current, total, name },
+//                'export-all-result' { format, filename, content } (content '' when nothing was exported)
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -21,10 +26,15 @@ const els = {
   exportBtn: $('exportBtn'),
   copyBtn: $('copyBtn'),
   generateBtn: $('generateBtn'),
+  allSummary: $('allSummary'),
+  includeHidden: $('includeHidden'),
+  exportAllBtns: { md: $('exportAllMdBtn'), json: $('exportAllJsonBtn') },
 };
 els.selectionIcon.innerHTML = icons.component; // static, trusted markup
 
-const state = { format: 'md', generating: false };
+const state = { format: 'md', generating: false, exportingAll: null };
+const exportAllLabels = { md: 'Export all .md', json: 'Export all .json' };
+const mimeTypes = { md: 'text/markdown', json: 'application/json' };
 
 function send(type, payload = {}) {
   parent.postMessage({ pluginMessage: { type, ...payload } }, '*');
@@ -55,11 +65,42 @@ function updateButtons() {
   setDisabled(els.exportBtn, !els.outputs.json.value.trim());
 }
 
+// Generate and Export All share the plugin's main thread: run one at a time
+function updateBusy() {
+  const busy = state.generating || Boolean(state.exportingAll);
+  setDisabled(els.generateBtn, busy);
+  for (const [format, btn] of Object.entries(els.exportAllBtns)) {
+    const active = state.exportingAll === format;
+    setDisabled(btn, busy);
+    btn.setAttribute('aria-busy', String(active));
+    btn.textContent = active ? 'Exporting…' : exportAllLabels[format];
+  }
+  setDisabled(els.includeHidden, Boolean(state.exportingAll));
+}
+
 function setGenerating(generating) {
   state.generating = generating;
-  setDisabled(els.generateBtn, generating);
   els.generateBtn.setAttribute('aria-busy', String(generating));
   els.generateBtn.textContent = generating ? 'Generating…' : 'Generate';
+  updateBusy();
+}
+
+function setExportingAll(format) {
+  state.exportingAll = format;
+  updateBusy();
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function setAllSummary({ setCount, componentCount, error }) {
+  els.allSummary.textContent = error
+    ? 'Could not scan the file.'
+    : `${plural(setCount || 0, 'component set')} · ${plural(componentCount || 0, 'component')}`;
+}
+
+function scanAll() {
+  els.allSummary.textContent = 'Scanning all pages…';
+  send('ui-scan-all', { includeHidden: els.includeHidden.checked });
 }
 
 function setFormat(format) {
@@ -88,8 +129,8 @@ function copyFromTextarea(area) {
   return ok;
 }
 
-function downloadFile(filename, content) {
-  const blob = new Blob([content], { type: 'application/json' });
+function downloadFile(filename, content, type = mimeTypes.json) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -133,6 +174,17 @@ els.exportBtn.addEventListener('click', () => {
   send('ui-export', { payload: json });
 });
 
+els.includeHidden.addEventListener('change', scanAll);
+
+for (const [format, btn] of Object.entries(els.exportAllBtns)) {
+  btn.addEventListener('click', () => {
+    if (isDisabled(btn)) return;
+    setExportingAll(format);
+    setStatus('⚙️ Scanning all pages…');
+    send('ui-export-all', { format, includeHidden: els.includeHidden.checked });
+  });
+}
+
 // ---------- Plugin messages ----------
 
 window.addEventListener('message', (event) => {
@@ -160,6 +212,23 @@ window.addEventListener('message', (event) => {
         setStatus('❌ Export failed', 'err');
       }
       break;
+    case 'scan-all-result':
+      setAllSummary(msg);
+      break;
+    case 'export-all-progress':
+      setStatus(`⏳ Exporting ${msg.current}/${msg.total} · ${msg.name}`);
+      break;
+    case 'export-all-result':
+      setExportingAll(null);
+      // The plugin already reported the outcome in 'status'; only report save errors
+      if (msg.content) {
+        try {
+          downloadFile(msg.filename, msg.content, mimeTypes[msg.format]);
+        } catch (_) {
+          setStatus('❌ Export failed', 'err');
+        }
+      }
+      break;
     default:
       break;
   }
@@ -167,3 +236,4 @@ window.addEventListener('message', (event) => {
 
 setFormat('md');
 send('ui-ready');
+scanAll();

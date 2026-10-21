@@ -1,6 +1,6 @@
 {
   "name": "export-component-metadata",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Figma plugin that exports component properties as Markdown and JSON documentation.",
   "main": "code.js",
   "scripts": {
