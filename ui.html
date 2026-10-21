@@ -5,10 +5,7 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Export Component Metadata</title>
-  <!-- UI Kit: Inter font -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- No web fonts: manifest networkAccess is "none", so Inter is used only if installed locally -->
   <style>
     /* ===== UI KIT VARIABLES ===== */
     :root {
@@ -172,25 +169,55 @@
       { btn: $('tab-md'), panel: $('panel-md'), area: $('output-md'), fmt: 'md' },
       { btn: $('tab-json'), panel: $('panel-json'), area: $('output-json'), fmt: 'json' }
     ];
+    const activeTab = () => tabs.find(t=> t.panel.getAttribute('aria-hidden') === 'false');
+    function updateButtons(){
+      const active = activeTab();
+      $('copyBtn').disabled = !(active && active.area.value.trim());
+      $('exportBtn').disabled = !$('output-json').value.trim();
+    }
     function activateTab(idx){
       tabs.forEach((t,i)=>{
         t.btn.classList.toggle('active', i===idx);
         t.btn.setAttribute('aria-selected', i===idx ? 'true' : 'false');
         t.panel.setAttribute('aria-hidden', i===idx ? 'false' : 'true');
       });
+      updateButtons();
     }
     tabs.forEach((t,i)=> t.btn.addEventListener('click', ()=> activateTab(i)));
 
-    // Copy
+    // Copy: the Clipboard API is blocked in Figma's plugin iframe, so copy via a
+    // textarea selection first and only fall back to navigator.clipboard.
+    function copyFromTextarea(area){
+      area.focus();
+      area.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch(e) { ok = false; }
+      area.setSelectionRange(0, 0);
+      area.blur();
+      return ok;
+    }
     $('copyBtn').addEventListener('click', async () => {
-      const active = tabs.find(t=> t.panel.getAttribute('aria-hidden') === 'false');
-      if (!active) return;
-      const text = active.area.value || '';
-      try{
-        await navigator.clipboard.writeText(text);
-        setStatus('📋 Copied to clipboard', 'ok');
-      }catch(e){ setStatus('❌ Copy failed', 'err'); }
+      const active = activeTab();
+      if (!active || !active.area.value) return;
+      let ok = copyFromTextarea(active.area);
+      if (!ok && navigator.clipboard) {
+        try { await navigator.clipboard.writeText(active.area.value); ok = true; } catch(e) { ok = false; }
+      }
+      setStatus(ok ? '📋 Copied to clipboard' : '❌ Copy failed', ok ? 'ok' : 'err');
     });
+
+    // Save a file requested by code.ts
+    function downloadFile(filename, content){
+      const blob = new Blob([content], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 1000);
+    }
 
     // Export JSON
     $('exportBtn').addEventListener('click', () => {
@@ -202,8 +229,7 @@
     // Generate
     $('generateBtn').addEventListener('click', () => {
       setStatus('⚙️ Generating…');
-      parent.postMessage({ pluginMessage: { type: 'ui-generate', options: { format: 'md' } } }, '*');
-      parent.postMessage({ pluginMessage: { type: 'ui-generate', options: { format: 'json' } } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'ui-generate' } }, '*');
     });
 
     // Init
@@ -221,9 +247,14 @@
       if (msg.type === 'generation-result'){
         if (msg.format === 'md') $('output-md').value = msg.output || '';
         if (msg.format === 'json') $('output-json').value = msg.output || '';
-        const hasContent = Boolean((msg.output||'').trim());
-        $('copyBtn').disabled = !hasContent;
-        $('exportBtn').disabled = !Boolean(($('output-json').value||'').trim());
+        updateButtons();
+      }
+      if (msg.type === 'download'){
+        try {
+          downloadFile(msg.filename || 'component-metadata.json', msg.content || '');
+          setStatus(`💾 Saved ${msg.filename}`, 'ok');
+        } catch(e) { setStatus('❌ Export failed', 'err'); }
+        return;
       }
       if (msg.type === 'status'){
         const text = msg.message || '';

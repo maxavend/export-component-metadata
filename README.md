@@ -7,7 +7,7 @@ It generates clear, well-organized documentation in **Markdown** and **JSON**, s
 
 ## Overview
 
-This plugin simplifies the process of documenting **Component Properties** (Variants, Booleans, Text, String, Instance Swap, etc.) directly from Figma — ensuring consistent and standardized component documentation across teams.
+This plugin simplifies the process of documenting **Component Properties** (Variant, Boolean, Text and Instance Swap) directly from Figma — ensuring consistent and standardized component documentation across teams.
 
 You can select either:
 - A **Component Set** (to include all variants)
@@ -21,10 +21,10 @@ Then the plugin automatically extracts all available **properties**, orders them
 
 - **Markdown or JSON Export** — auto‑generate readable or structured metadata documentation.
 - **Full Property Support** — detects and lists:
-  - `VARIANT` groups
+  - `VARIANT` groups (values and default variant)
   - `BOOLEAN` toggles
-  - `TEXT` and `STRING` inputs
-  - `INSTANCE_SWAP` with preferred instances
+  - `TEXT` inputs
+  - `INSTANCE_SWAP` with default and preferred instances (resolved by name for local and published library components)
 - **Component‑Level Detection** — works with both **Component Sets** and **single Components**.
 - **Heuristic Ordering** — preserves an order similar to Figma’s property panel (e.g., “Has Left Icon” before “Left Icon”).
 - **Inline Status Feedback** — see real‑time messages in the plugin UI.
@@ -52,8 +52,9 @@ This allows:
 | Node Resolution | `figma.currentPage.selection` + `getMainComponentAsync()` | To detect the selected node and resolve it to a Component or Component Set |
 | Metadata Extraction | `componentPropertyDefinitions` | To retrieve property names, types, and default values |
 | Async Access | `figma.getNodeByIdAsync()` | Modern async API to safely fetch nodes |
+| Preferred Instances | `figma.loadAllPagesAsync()` + `findAllWithCriteria()`, `figma.importComponentByKeyAsync()` / `importComponentSetByKeyAsync()` | Resolve preferred values (which reference components by key) to component names |
 | Communication | `figma.ui.postMessage()` / `figma.ui.onmessage` | Bidirectional data flow between plugin backend and UI |
-| Export | `figma.ui.postMessage({ format: "json" })` | Export clean structured data |
+| Export | `download` message → Blob download in the UI | Save the JSON as `<Component name>.json` |
 
 ---
 
@@ -105,23 +106,28 @@ If a Component is selected (not a set), the plugin still outputs all its **Compo
 - Component Properties: 8
 
 ## Component Props
+[VARIANT] **Size**  
+Values: L, M, S  
+Default: L
+
+[VARIANT] **Variant**  
+Values: Primary, Secondary, Tertiary, Tonal, Danger/Text, Overlay  
+Default: Primary
+
 [BOOLEAN] **Has Left Icon**  
 Values: True / False  
-Default: true  
+Default: true
 
 [INSTANCE SWAP] **Left Icon**  
 Default: dashboard_customize  
 Preferred Instances (3): `icon/chevron-left`, `icon/back`, `icon/menu`
 
 [TEXT] **Text**  
-Default: Body text  
+Default: Body text
 
-[VARIANT] **Size**  
-Values: L, M, S  
-
-[VARIANT] **Variant**  
-Values: Primary, Secondary, Tertiary, Tonal, Danger/Text, Overlay
 ```
+
+Variant properties are listed first, followed by the other properties. Preferred instances that are neither in the file nor in a published library are counted as "not resolved".
 
 ---
 
