@@ -16,7 +16,7 @@ h1{font-weight:600;font-size:66px;line-height:1.04;letter-spacing:-0.03em;margin
 .win{position:absolute;transform-origin:0 0;width:320px;border-radius:13px;overflow:hidden;background:#fff;
   box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.08),0 24px 56px rgba(30,20,90,.16)}
 .win.dark{background:#2C2C2C;box-shadow:0 0 0 .5px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.2),0 24px 56px rgba(10,5,40,.35)}
-.win .bar{height:40px;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;font:600 11px/16px Inter;color:#1E1E1E;border-bottom:1px solid #E6E6E6}
+.win .bar{height:40px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;font:600 11px/16px Inter;color:#1E1E1E;border-bottom:1px solid #E6E6E6}
 .win.dark .bar{color:#fff;border-bottom-color:#444}
 .win .bar img{width:16px;height:16px;border-radius:4px}
 .win .bar .x{margin-left:auto;width:24px;height:24px;display:grid;place-items:center}
