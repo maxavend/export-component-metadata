@@ -1,17 +1,16 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
 .copy{position:absolute;left:160px;top:0;bottom:0;width:620px;display:flex;flex-direction:column;justify-content:center}
-h1{font-size:72px}
 .facts{margin:56px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:22px}
 .facts li{display:flex;gap:16px;align-items:flex-start;font:500 24px/1.4 Inter;color:var(--graphite)}
 .facts svg{flex:none;margin-top:3px}
-.doc{position:absolute;left:1336px;top:220px;width:440px;height:700px;border-radius:20px;background:#fff;overflow:hidden;
+.doc{position:absolute;left:1326px;top:159px;width:434px;height:714px;border-radius:20px;background:#fff;overflow:hidden;
   box-shadow:0 0 0 1px rgba(0,0,0,.05),0 20px 48px rgba(30,20,90,.10)}
 .doc .tab{height:58px;display:flex;align-items:center;gap:10px;padding:0 24px;font:600 16px/1 Inter;border-bottom:1px solid #ECECF0}
 .doc .tab .size{margin-left:auto;font:500 14px/1 Inter;color:var(--grey)}
 .doc pre{margin:0;padding:20px 24px;font-size:15px;line-height:1.6}
 .doc .h{color:var(--violet);font-weight:600}.doc .tag{color:var(--violet);background:rgba(91,63,239,.08);border-radius:4px;padding:1px 3px;margin:0 -3px}.doc b{font-weight:600}.doc .p{color:#AEAEB2}.doc .hr{color:var(--violet);opacity:.55}
 .doc::after{content:"";position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(rgba(255,255,255,0),#fff)}
-.saved{position:absolute;left:1336px;top:948px;display:flex;align-items:center;gap:10px;font:500 18px/1 Inter;color:var(--grey)}
+.saved{position:absolute;left:1326px;top:901px;display:flex;align-items:center;gap:10px;font:500 18px/1 Inter;color:var(--grey)}
 </style></head><body>
 <div class="copy">
   <div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
@@ -39,6 +38,6 @@ parts.forEach(([name, v, props], i) => {
   for (const [t, n, ...rest] of props) lines.push(`<span class="tag">[${t}]</span> <span class="p">**</span><b>${n}</b><span class="p">**</span>`, ...rest, '');
 });
 document.getElementById('all').innerHTML = lines.join('\n');
-pluginWindow({ x: 880, y: 160, scale: 1.27, theme: 'light', exportAll: 'md' });
+pluginWindow({ x: 1326 - 40 - 320 * 1.27, y: 540 - 600 * 1.27 / 2, scale: 1.27, theme: 'light', exportAll: 'md' });
 </script>
 </body></html>

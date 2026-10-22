@@ -1,6 +1,5 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
 .copy{position:absolute;left:160px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center}
-h1{font-size:72px}
 .page{position:absolute;left:1236px;top:120px;width:524px;height:840px;border-radius:20px;background:#fff;overflow:hidden;
   box-shadow:0 0 0 1px rgba(0,0,0,.05),0 20px 48px rgba(30,20,90,.10)}
 .page .bar{height:52px;display:flex;align-items:center;gap:8px;padding:0 20px;border-bottom:1px solid #ECECF0;font:500 15px/1 Inter;color:var(--grey)}
@@ -35,6 +34,6 @@ const html = MD.trim().split(/\n{2,}/).map((block) => {
   return `<p>${block.split('  \n').map(inline).join('<br>')}</p>`;
 }).join('');
 document.getElementById('doc').innerHTML = html;
-pluginWindow({ x: 812, y: 200, scale: 1.2, theme: 'light', status: '📋 Copied to clipboard' });
+pluginWindow({ x: 1236 - 40 - 320 * 1.2, y: 540 - 600 * 1.2 / 2, scale: 1.2, theme: 'light', status: '📋 Copied to clipboard' });
 </script>
 </body></html>

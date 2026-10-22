@@ -1,11 +1,10 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
-h1{font-size:66px}.lede{font-size:28px}
 .copy{position:absolute;left:160px;top:0;bottom:0;width:640px;display:flex;flex-direction:column;justify-content:center}
 .canvas{position:absolute;left:840px;top:110px;width:1100px;height:860px;border-radius:28px 0 0 28px;background:#1E1E1E;overflow:hidden;
   background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:24px 24px}
-.set{position:absolute;left:52px;top:262px}
+.set{position:absolute}
 .set .label{display:flex;align-items:center;gap:6px;font:500 15px/1 Inter;color:#B794FF;margin:0 0 10px 2px}
-.frame{position:relative;display:grid;grid-template-columns:repeat(4,auto);gap:18px 14px;padding:24px;background:#fff;border:1.5px dashed #9747FF;border-radius:8px}
+.frame{position:relative;display:grid;grid-template-columns:repeat(4,auto);gap:16px 10px;padding:18px;background:#fff;border:1.5px dashed #9747FF;border-radius:8px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;background:#1D1D1F;color:#fff;font:500 14px/1 Inter;white-space:nowrap}
 .btn.l{height:42px;padding:0 18px;font-size:15px}.btn.m{height:34px;padding:0 15px}.btn.s{height:28px;padding:0 12px;font-size:12px}
 .btn.hover{background:#3A3A3C}.btn.pressed{background:#000;box-shadow:inset 0 0 0 3px rgba(255,255,255,.18)}.btn.disabled{background:#E5E5EA;color:#AEAEB2}
@@ -17,7 +16,7 @@ h1{font-size:66px}.lede{font-size:28px}
 <div class="copy">
   <div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
   <h1>Select a component.<br>Get its documentation.</h1>
-  <p class="lede">Pick a Component, Component Set or Instance. The plugin reads every property and writes it down.</p>
+  <p class="lede">Pick a Component, Component Set or Instance. The plugin reads every property.</p>
 </div>
 <div class="canvas">
   <div class="set">
@@ -36,6 +35,14 @@ for (const size of ['l', 'm', 's']) for (const state of ['', 'hover', 'pressed',
   const cell = document.createElement('div'); cell.style.cssText = 'display:flex;align-items:center;justify-content:center';
   cell.appendChild(b); frame.appendChild(cell);
 }
-pluginWindow({ x: 1468, y: 170, scale: 1.24, theme: 'dark' });
+const win = pluginWindow({ x: 1760 - 320 * 1.2, y: 540 - 600 * 1.2 / 2, scale: 1.2, theme: 'dark' });
+// Centre the component set (its frame, not the label) in the canvas left of the plugin window
+document.fonts.ready.then(() => {
+const canvas = document.querySelector('.canvas').getBoundingClientRect(), set = document.querySelector('.set');
+const fr = document.getElementById('frame').getBoundingClientRect(), s0 = set.getBoundingClientRect();
+const freeL = canvas.left, freeR = 1760 - 320 * 1.2;
+set.style.left = `${(freeL + freeR) / 2 - fr.width / 2 - (fr.left - s0.left) - canvas.left}px`;
+set.style.top = `${540 - fr.height / 2 - (fr.top - s0.top) - canvas.top}px`;
+});
 </script>
 </body></html>
