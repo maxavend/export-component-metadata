@@ -7,7 +7,7 @@
 .cap svg{color:#B794FF}
 /* Only the frame sets the node's size, so every frame sits in the centre of its tile; the label hangs above it like in Figma */
 .node{position:absolute;left:50%;top:var(--frame-cy);transform:translate(-50%,-50%) scale(1.45)}
-.lbl{position:absolute;left:1px;bottom:100%;margin-bottom:7px;display:flex;align-items:center;gap:5px;font:500 13px/1 Inter;color:#B794FF;white-space:nowrap}
+.lbl{position:absolute;left:0;bottom:100%;margin-bottom:7px;display:flex;align-items:center;gap:5px;font:500 13px/1 Inter;color:#B794FF;white-space:nowrap}
 .set{display:flex;gap:10px;padding:16px;background:#fff;border:1.5px dashed #9747FF;border-radius:6px}
 .solo{display:inline-block;padding:16px;background:#fff;border:1.5px solid transparent;border-radius:6px}
 .solo.var{border-color:#9747FF}
@@ -44,7 +44,18 @@ set('c1', SET + 'The component set'); set('l1', SET + 'Button');
 set('c2', COMP + 'One of its variants'); set('l2', COMP + 'Size=M, State=Hover');
 set('c3', INST + 'An instance'); set('l3', INST + 'Button');
 // Centre each frame in the space under the caption: equal room above its label and below the frame
+// Line a label up with the selection under it: the outer edge of its icon's ink on the outer edge of the blue line
+function alignLabel(label, sel, scale = 1) {
+  const ink = [...label.querySelectorAll('svg path')].reduce((m, p) => {
+    const r = p.getBoundingClientRect(), sw = parseFloat(p.getAttribute('stroke-width') || 0);
+    const k = p.ownerSVGElement.getBoundingClientRect().width / p.ownerSVGElement.viewBox.baseVal.width;
+    return Math.min(m, r.left - (p.getAttribute('stroke') ? sw * k / 2 : 0));
+  }, Infinity);
+  const shift = (sel.getBoundingClientRect().left - ink) / scale;
+  label.style.marginLeft = `${(parseFloat(label.style.marginLeft) || 0) + shift}px`;
+}
 document.fonts.ready.then(() => {
+document.querySelectorAll('.tile').forEach((el) => alignLabel(el.querySelector('.lbl'), el.querySelector('.sel'), 1.45));
 const tile = document.querySelector('.tile'), cap = tile.querySelector('.cap').getBoundingClientRect();
 const t = tile.getBoundingClientRect(), wrap = tile.querySelector('.wrap').getBoundingClientRect(), lbl = tile.querySelector('.lbl').getBoundingClientRect();
 const above = wrap.top - lbl.top, room = t.bottom - cap.bottom;

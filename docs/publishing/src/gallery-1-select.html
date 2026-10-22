@@ -3,7 +3,7 @@
 .canvas{position:absolute;left:840px;top:110px;width:1100px;height:860px;border-radius:28px 0 0 28px;background:#1E1E1E;overflow:hidden;
   background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:24px 24px}
 .set{position:absolute}
-.set .label{display:flex;align-items:center;gap:6px;font:500 15px/1 Inter;color:#B794FF;margin:0 0 10px 2px}
+.set .label{display:flex;align-items:center;gap:6px;font:500 15px/1 Inter;color:#B794FF;margin:0 0 10px 0}
 .frame{position:relative;display:grid;grid-template-columns:repeat(4,auto);gap:16px 10px;padding:18px;background:#fff;border:1.5px dashed #9747FF;border-radius:8px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;background:#1D1D1F;color:#fff;font:500 14px/1 Inter;white-space:nowrap}
 .btn.l{height:42px;padding:0 18px;font-size:15px}.btn.m{height:34px;padding:0 15px}.btn.s{height:28px;padding:0 12px;font-size:12px}
@@ -37,7 +37,18 @@ for (const size of ['l', 'm', 's']) for (const state of ['', 'hover', 'pressed',
 }
 const win = pluginWindow({ x: 1760 - 320 * 1.2, y: 540 - 600 * 1.2 / 2, scale: 1.2, theme: 'dark' });
 // Centre the component set (its frame, not the label) in the canvas left of the plugin window
+// Line a label up with the selection under it: the outer edge of its icon's ink on the outer edge of the blue line
+function alignLabel(label, sel, scale = 1) {
+  const ink = [...label.querySelectorAll('svg path')].reduce((m, p) => {
+    const r = p.getBoundingClientRect(), sw = parseFloat(p.getAttribute('stroke-width') || 0);
+    const k = p.ownerSVGElement.getBoundingClientRect().width / p.ownerSVGElement.viewBox.baseVal.width;
+    return Math.min(m, r.left - (p.getAttribute('stroke') ? sw * k / 2 : 0));
+  }, Infinity);
+  const shift = (sel.getBoundingClientRect().left - ink) / scale;
+  label.style.marginLeft = `${(parseFloat(label.style.marginLeft) || 0) + shift}px`;
+}
 document.fonts.ready.then(() => {
+alignLabel(document.querySelector('.set .label'), document.querySelector('.sel'));
 const canvas = document.querySelector('.canvas').getBoundingClientRect(), set = document.querySelector('.set');
 const fr = document.getElementById('frame').getBoundingClientRect(), s0 = set.getBoundingClientRect();
 const freeL = canvas.left, freeR = 1760 - 320 * 1.2;
