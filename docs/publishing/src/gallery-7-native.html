@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
+.copy{position:absolute;left:160px;top:0;bottom:0;width:640px;display:flex;flex-direction:column;justify-content:center}
+h1{font-size:72px}
+.facts{margin:56px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:22px}
+.facts li{display:flex;gap:16px;align-items:flex-start;font:500 24px/1.4 Inter}
+.facts svg{flex:none;margin-top:3px}
+</style></head><body>
+<div class="copy">
+  <div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
+  <h1>Feels like Figma.</h1>
+  <p class="lede">Built with Figma's UI3 look and theme colours, so it feels at home in your file.</p>
+  <ul class="facts" id="facts"></ul>
+</div>
+<script src="plugin.js"></script>
+<script>
+const CHECK = '<svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#5B3FEF"/><path d="m8 13.4 3.3 3.2L18 9.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+document.getElementById('facts').innerHTML = ['Follows Figma’s light and dark themes', 'No network access: nothing leaves your file', 'Open source, MIT licensed'].map((t) => `<li>${CHECK}${t}</li>`).join('');
+pluginWindow({ x: 900, y: 120, scale: 1.2, theme: 'light' });
+pluginWindow({ x: 1330, y: 230, scale: 1.2, theme: 'dark', format: 'json' });
+</script>
+</body></html>

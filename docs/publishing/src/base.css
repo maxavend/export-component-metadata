@@ -1,0 +1,20 @@
+@font-face{font-family:Inter;font-weight:500;src:url(inter-latin-500-normal.woff)}
+@font-face{font-family:Inter;font-weight:600;src:url(inter-latin-600-normal.woff)}
+:root{--violet:#5B3FEF;--lavender:#B99BFF;--graphite:#1D1D1F;--mist:#F5F5F7;--grey:#6E6E73;--figma-purple:#9747FF;--sel:#0D99FF}
+html,body{margin:0}
+body{width:1920px;height:1080px;overflow:hidden;position:relative;background:var(--mist);font-family:Inter;color:var(--graphite);-webkit-font-smoothing:antialiased}
+h1{font-weight:600;font-size:80px;line-height:1.04;letter-spacing:-0.03em;margin:0}
+.lede{font-weight:500;font-size:30px;line-height:1.4;letter-spacing:-0.01em;color:var(--grey);margin:28px 0 0}
+.eyebrow{display:flex;align-items:center;gap:14px;font:600 22px/1 Inter;letter-spacing:-0.005em;color:var(--graphite);margin-bottom:44px}
+.eyebrow img{height:26px}
+.abs{position:absolute}
+/* Figma (UI3) plugin window */
+.win{position:absolute;transform-origin:0 0;width:320px;border-radius:13px;overflow:hidden;background:#fff;
+  box-shadow:0 0 0 .5px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.08),0 24px 56px rgba(30,20,90,.16)}
+.win.dark{background:#2C2C2C;box-shadow:0 0 0 .5px rgba(255,255,255,.12),0 0 0 1px rgba(0,0,0,.4),0 2px 6px rgba(0,0,0,.2),0 24px 56px rgba(10,5,40,.35)}
+.win .bar{height:40px;display:flex;align-items:center;gap:8px;padding:0 8px 0 16px;font:600 11px/16px Inter;color:#1E1E1E;border-bottom:1px solid #E6E6E6}
+.win.dark .bar{color:#fff;border-bottom-color:#444}
+.win .bar img{width:16px;height:16px;border-radius:4px}
+.win .bar .x{margin-left:auto;width:24px;height:24px;display:grid;place-items:center}
+.win iframe{display:block;width:320px;border:0}
+.code{font:500 19px/1.6 ui-monospace,"SF Mono",Menlo,monospace;white-space:pre;letter-spacing:0}

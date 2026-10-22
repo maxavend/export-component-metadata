@@ -1,0 +1,50 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
+.head{position:absolute;left:160px;right:160px;top:112px;display:flex;align-items:flex-end;justify-content:space-between;gap:80px}
+.head .lede{max-width:600px;margin:0 0 6px}
+h1{font-size:72px}
+.cards{position:absolute;left:160px;right:160px;top:420px;display:grid;grid-template-columns:repeat(4,1fr);gap:28px}
+.card{background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 20px 48px rgba(30,20,90,.08);display:flex;flex-direction:column}
+.stage{height:210px;background:#F7F7FA;border-bottom:1px solid #ECECF0;display:grid;place-items:center}
+.body{padding:28px 30px 32px;display:flex;flex-direction:column;gap:14px}
+.tag{align-self:flex-start;font:600 15px/1 ui-monospace,"SF Mono",Menlo,monospace;color:var(--violet);background:rgba(91,63,239,.08);border-radius:6px;padding:7px 9px}
+.name{font:600 32px/1.1 Inter;letter-spacing:-0.02em;margin:6px 0 4px}
+.row{display:flex;justify-content:space-between;gap:12px;font:500 19px/1.35 Inter;padding-top:12px;border-top:1px solid #F0F0F3}
+.row span:first-child{color:var(--grey)}.row span:last-child{text-align:right}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:17px}
+/* Figma-panel-like controls */
+.seg{display:flex;background:#EBEBF0;border-radius:10px;padding:3px;gap:2px}
+.seg i{font:500 18px/1 Inter;font-style:normal;padding:10px 22px;border-radius:8px;color:#555}
+.seg i.on{background:#fff;color:var(--graphite);box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.tg{display:flex;align-items:center;gap:14px;font:500 19px/1 Inter}
+.tg b{width:52px;height:30px;border-radius:99px;background:#D1D1D6;position:relative}
+.tg b::after{content:"";position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.field{width:220px;height:46px;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1.5px var(--violet);display:flex;align-items:center;padding:0 14px;font:500 19px/1 Inter;gap:2px}
+.field u{width:2px;height:22px;background:var(--violet)}
+.pick{width:240px;background:#fff;border-radius:12px;box-shadow:0 0 0 1px rgba(0,0,0,.06),0 8px 20px rgba(0,0,0,.08);padding:6px}
+.pick div{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font:500 16px/1 Inter}
+.pick div.on{background:rgba(91,63,239,.1);color:var(--violet)}
+</style></head><body>
+<div class="head">
+  <div><div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
+  <h1>Every property type.</h1></div>
+  <p class="lede">Values, defaults and preferred instances: the details your documentation needs, read straight from the component.</p>
+</div>
+<div class="cards">
+  <div class="card"><div class="stage"><div class="seg"><i>L</i><i class="on">M</i><i>S</i></div></div>
+    <div class="body"><span class="tag">VARIANT</span><div class="name">Size</div>
+    <div class="row"><span>Values</span><span>L, M, S</span></div><div class="row"><span>Default</span><span>M</span></div></div></div>
+  <div class="card"><div class="stage"><div class="tg"><b></b>Has Left Icon</div></div>
+    <div class="body"><span class="tag">BOOLEAN</span><div class="name">Has Left Icon</div>
+    <div class="row"><span>Values</span><span>True / False</span></div><div class="row"><span>Default</span><span>false</span></div></div></div>
+  <div class="card"><div class="stage"><div class="field">Button<u></u></div></div>
+    <div class="body"><span class="tag">TEXT</span><div class="name">Label</div>
+    <div class="row"><span>Default</span><span>Button</span></div></div></div>
+  <div class="card"><div class="stage"><div class="pick" id="pick"></div></div>
+    <div class="body"><span class="tag">INSTANCE SWAP</span><div class="name">Left Icon</div>
+    <div class="row"><span>Default</span><span class="mono">icon/plus</span></div><div class="row"><span>Preferred</span><span class="mono">icon/plus<br>icon/arrow-left<br>icon/check</span></div></div></div>
+</div>
+<script>
+const D = '<svg width="14" height="14" viewBox="0 0 14 14"><path d="M7 1.5 12.5 7 7 12.5 1.5 7Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+document.getElementById('pick').innerHTML = ['icon/plus', 'icon/arrow-left', 'icon/check'].map((n, i) => `<div class="${i ? '' : 'on'}">${D}${n}</div>`).join('');
+</script>
+</body></html>
