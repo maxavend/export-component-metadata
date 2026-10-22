@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
+.head{position:absolute;left:160px;right:160px;top:112px;display:flex;align-items:flex-end;justify-content:space-between;gap:80px}
+.head .lede{max-width:600px;margin:0 0 6px}
+h1{font-size:72px}
+.cards{position:absolute;left:160px;right:160px;top:456px;bottom:-40px;display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.card{border-radius:24px;background:#fff;overflow:hidden;position:relative;box-shadow:0 0 0 1px rgba(0,0,0,.05),0 20px 48px rgba(30,20,90,.08)}
+.card.dark{background:#1E1E1E;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 20px 48px rgba(10,5,40,.18)}
+.tab{height:64px;display:flex;align-items:center;gap:12px;padding:0 32px;font:600 19px/1 Inter;border-bottom:1px solid #ECECF0}
+.dark .tab{color:#F5F5F7;border-bottom-color:#2E2E30}
+.tab .fmt{margin-left:auto;font:500 16px/1 Inter;color:var(--grey)}
+.dark .tab .fmt{color:#98989D}
+.card pre{margin:0;padding:26px 32px}
+.card::after{content:"";position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(rgba(255,255,255,0),#fff)}
+.card.dark::after{background:linear-gradient(rgba(30,30,30,0),#1E1E1E)}
+/* markdown */
+.md .h{color:var(--violet);font-weight:600}.md .tag{color:var(--violet);background:rgba(91,63,239,.08);border-radius:5px;padding:1px 3px;margin:0 -3px}
+.md .b{font-weight:600}.md .p{color:#AEAEB2}.md .c{color:#3A3A3C;background:#F2F2F7;border-radius:5px;padding:1px 3px}
+/* json */
+.json{color:#F5F5F7}.json .k{color:#C9B6FF}.json .s{color:#9FE3B4}.json .n{color:#FFC98B}.json .p{color:#8E8E93}
+.fold{display:inline-block;font:500 15px/1 Inter;color:#C9B6FF;background:rgba(185,155,255,.14);border-radius:999px;padding:4px 10px;vertical-align:2px}
+</style></head><body>
+<div class="head">
+  <div><div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
+  <h1>Readable Markdown.<br>Structured JSON.</h1></div>
+  <p class="lede">Variants, booleans, text and instance swaps, with their values and defaults. Paste the Markdown into your docs; feed the JSON to your tools.</p>
+</div>
+<div class="cards">
+  <div class="card"><div class="tab"><img src="../../brand/symbol/symbol-color.svg" height="16" alt="">Button.md<span class="fmt">Markdown</span></div><pre class="code md" id="md"></pre></div>
+  <div class="card dark"><div class="tab"><img src="../../brand/symbol/symbol-on-dark.svg" height="16" alt="">Button.json<span class="fmt">JSON</span></div><pre class="code json" id="json"></pre></div>
+</div>
+<script src="plugin.js"></script>
+<script>
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+document.getElementById('md').innerHTML = MD.trimEnd().split('\n').map((l) => {
+  let h = esc(l.replace(/  $/, ''));
+  if (/^#{1,2} /.test(l)) return `<span class="h">${h}</span>`;
+  h = h.replace(/^(- )/, '<span class="p">$1</span>')
+       .replace(/^\[([A-Z ]+)\]/, '<span class="tag">[$1]</span>')
+       .replace(/\*\*(.+?)\*\*/, '<span class="p">**</span><span class="b">$1</span><span class="p">**</span>')
+       .replace(/`([^`]+)`/g, '<span class="c">$1</span>');
+  return h;
+}).join('\n');
+// JSON as the plugin writes it, with the raw componentProps array folded like an editor would
+const data = JSON.parse(JSON_OUT);
+const folded = JSON.stringify({ ...data, componentProps: '__FOLD__' }, null, 2);
+const tok = /("(?:[^"\\]|\\.)*")(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?|[{}\[\],:]/g;
+document.getElementById('json').innerHTML = folded.replace(tok, (m, str, colon, lit) => {
+  if (str === '"__FOLD__"') return '<span class="p">[</span> <span class="fold">5 properties · raw Figma values</span> <span class="p">]</span>';
+  if (str) return colon ? `<span class="k">${esc(str)}</span><span class="p">${colon}</span>` : `<span class="s">${esc(str)}</span>`;
+  if (lit || /^-?\d/.test(m)) return `<span class="n">${m}</span>`;
+  return `<span class="p">${m}</span>`;
+});
+</script>
+</body></html>

@@ -62,5 +62,21 @@ The plugin is live at [figma.com/community/plugin/1568592066328136279](https://w
 |---|---|---|
 | Icon | 128 × 128 px | [`docs/publishing/icon-128.png`](publishing/icon-128.png) |
 | Cover | 1920 × 1080 px | [`docs/publishing/cover.png`](publishing/cover.png) |
+| Gallery 1 — *Select a component. Get its documentation.* | 1920 × 1080 px | [`docs/publishing/gallery-1-select.png`](publishing/gallery-1-select.png) |
+| Gallery 2 — *Readable Markdown. Structured JSON.* | 1920 × 1080 px | [`docs/publishing/gallery-2-formats.png`](publishing/gallery-2-formats.png) |
+| Gallery 3 — *Every property type.* | 1920 × 1080 px | [`docs/publishing/gallery-3-properties.png`](publishing/gallery-3-properties.png) |
+| Gallery 4 — *Start from any selection.* | 1920 × 1080 px | [`docs/publishing/gallery-4-any-selection.png`](publishing/gallery-4-any-selection.png) |
+| Gallery 5 — *Copy it. Paste it. Done.* | 1920 × 1080 px | [`docs/publishing/gallery-5-paste.png`](publishing/gallery-5-paste.png) |
+| Gallery 6 — *One component, or the whole file.* | 1920 × 1080 px | [`docs/publishing/gallery-6-export-all.png`](publishing/gallery-6-export-all.png) |
+| Gallery 7 — *Feels like Figma.* | 1920 × 1080 px | [`docs/publishing/gallery-7-native.png`](publishing/gallery-7-native.png) |
 
-The icon is the default appearance of the app icon in the [brand kit](brand/README.md) (`docs/brand/png/` has it up to 1024 px). The cover uses screenshots of the real UI, so it matches what users get; if the UI changes, retake the screenshots and update the cover.
+The cover and the seven gallery images make an eight-slide carousel (Figma allows up to ten); upload them in this order. Keep important content inside the central 1800 × 1080 px safe area. The icon is the default appearance of the app icon in the [brand kit](brand/README.md) (`docs/brand/png/` has it up to 1024 px).
+
+The plugin windows in the cover and gallery are the real `dist/ui.html`, loaded and driven with sample data, so they always match what users get. The sources are in [`docs/publishing/src`](publishing/src); if the UI or the brand changes, rebuild and render them again:
+
+```bash
+npm run build
+docs/publishing/src/render.sh
+```
+
+`render.sh` needs Google Chrome. The Inter font files in `src/` are under the SIL Open Font License ([`Inter-OFL.txt`](publishing/src/Inter-OFL.txt)).

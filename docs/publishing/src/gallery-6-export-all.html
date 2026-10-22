@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
+.copy{position:absolute;left:160px;top:0;bottom:0;width:620px;display:flex;flex-direction:column;justify-content:center}
+h1{font-size:72px}
+.facts{margin:56px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:22px}
+.facts li{display:flex;gap:16px;align-items:flex-start;font:500 24px/1.4 Inter;color:var(--graphite)}
+.facts svg{flex:none;margin-top:3px}
+.doc{position:absolute;left:1336px;top:220px;width:440px;height:700px;border-radius:20px;background:#fff;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(0,0,0,.05),0 20px 48px rgba(30,20,90,.10)}
+.doc .tab{height:58px;display:flex;align-items:center;gap:10px;padding:0 24px;font:600 16px/1 Inter;border-bottom:1px solid #ECECF0}
+.doc .tab .size{margin-left:auto;font:500 14px/1 Inter;color:var(--grey)}
+.doc pre{margin:0;padding:20px 24px;font-size:15px;line-height:1.6}
+.doc .h{color:var(--violet);font-weight:600}.doc .tag{color:var(--violet);background:rgba(91,63,239,.08);border-radius:4px;padding:1px 3px;margin:0 -3px}.doc b{font-weight:600}.doc .p{color:#AEAEB2}.doc .hr{color:var(--violet);opacity:.55}
+.doc::after{content:"";position:absolute;left:0;right:0;bottom:0;height:140px;background:linear-gradient(rgba(255,255,255,0),#fff)}
+.saved{position:absolute;left:1336px;top:948px;display:flex;align-items:center;gap:10px;font:500 18px/1 Inter;color:var(--grey)}
+</style></head><body>
+<div class="copy">
+  <div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
+  <h1>One component,<br>or the whole file.</h1>
+  <p class="lede">Export all scans every page and documents each component set and component in a single Markdown or JSON file.</p>
+  <ul class="facts">
+    <li><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#5B3FEF"/><path d="m8 13.4 3.3 3.2L18 9.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Hidden components only when you want them</li>
+    <li><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#5B3FEF"/><path d="m8 13.4 3.3 3.2L18 9.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Every page, in order</li>
+    <li><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="12" fill="#5B3FEF"/><path d="m8 13.4 3.3 3.2L18 9.8" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>If a component fails, the export keeps going</li>
+  </ul>
+</div>
+<div class="doc"><div class="tab"><img src="../../brand/symbol/symbol-color.svg" height="15" alt="">Acme Design System-all.md<span class="size">27 components</span></div><pre class="code" id="all"></pre></div>
+<div class="saved"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 15h12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Saved as one file when it finishes</div>
+<script src="plugin.js"></script>
+<script>
+const parts = [
+  ['Avatar', 6, [['VARIANT', 'Size', 'Values: S, M, L', 'Default: M'], ['BOOLEAN', 'Has Status', 'Values: True / False', 'Default: false']]],
+  ['Badge', 8, [['VARIANT', 'Tone', 'Values: Neutral, Info, Success, Warning', 'Default: Neutral']]],
+  ['Button', 12, [['VARIANT', 'Size', 'Values: L, M, S', 'Default: M']]],
+];
+const lines = [];
+parts.forEach(([name, v, props], i) => {
+  if (i) lines.push('<span class="hr">---</span>', '');
+  lines.push(`<span class="h"># ${name}</span>`, '', '<span class="h">## Overview</span>', `<span class="p">-</span> Variants: ${v}`, `<span class="p">-</span> Component Properties: ${props.length}`, '', '<span class="h">## Component Props</span>');
+  for (const [t, n, ...rest] of props) lines.push(`<span class="tag">[${t}]</span> <span class="p">**</span><b>${n}</b><span class="p">**</span>`, ...rest, '');
+});
+document.getElementById('all').innerHTML = lines.join('\n');
+pluginWindow({ x: 880, y: 160, scale: 1.27, theme: 'light', exportAll: 'md' });
+</script>
+</body></html>
