@@ -4,7 +4,13 @@
 
 ## The idea
 
-**Unfold.** Figma's component diamond runs into lines of text: a component becoming its documentation. One shape, read in a glance, and it says what the plugin does without drawing a document or a code bracket.
+**Key–value.** Figma's component diamond next to two lines: a property's key and its value — what the plugin reads out of every component. The value line shares the diamond's colour, because the value comes from the component; the key is in the colour of text.
+
+Nothing in it is arbitrary. Every measure comes from the diamond:
+
+- The key line is as long as the diamond's side; the value line is the key divided by the golden ratio.
+- One gutter everywhere: the space between the two lines is the space between the diamond and the lines, measured from the diamond's rounded tip.
+- The pointed tips overshoot slightly, so the diamond looks as tall as it is, and its corners are softened with long, smooth fillets rather than plain arcs.
 
 ## Files
 
@@ -12,7 +18,7 @@
 |---|---|
 | `symbol/` | The mark on its own: `color` (on light), `on-dark`, `black`, `white`, `violet` |
 | `lockup/` | Symbol + name: `horizontal-*` (one line) and `stacked-*` (two lines), same colour schemes |
-| `icon/` | App icon, Apple-style layered glass, in two appearances: `icon-default` and `icon-dark`. `*-rounded` versions have rounded corners and transparent outside; the square ones are full bleed |
+| `icon/` | App icon: the flat mark on a softly lit tile, in two appearances, `icon-default` and `icon-dark`. `*-rounded` versions have rounded corners, a hairline of light along the top edge and transparent outside; the square ones are full bleed |
 | `png/` | Ready-to-use PNG exports: icons at 1024, 512, 256 and 128 px; symbols and lockups 1600 px wide, transparent |
 | `src/` | Generators: `mark.py` (geometry and icon) and `build_kit.py` (lockups, with the name outlined from Inter) |
 
@@ -22,14 +28,14 @@ All SVGs are outlined: no live text, no embedded images. The flat marks use soli
 
 | Name | HEX | RGB | Use |
 |---|---|---|---|
-| Violet | `#5B3FEF` | 91 63 239 | The diamond on light backgrounds; brand colour |
-| Lavender | `#B99BFF` | 185 155 255 | The diamond on dark backgrounds |
-| Graphite | `#1D1D1F` | 29 29 31 | Lines and name on light backgrounds |
-| Mist | `#F5F5F7` | 245 245 247 | Lines and name on dark backgrounds; light surfaces |
+| Violet | `#5B3FEF` | 91 63 239 | Diamond and value line on light backgrounds; brand colour |
+| Lavender | `#B99BFF` | 185 155 255 | Diamond and value line on dark backgrounds |
+| Graphite | `#1D1D1F` | 29 29 31 | Key line and name on light backgrounds; key line on the default app icon |
+| Mist | `#F5F5F7` | 245 245 247 | Key line and name on dark backgrounds; light surfaces |
 
-App icon backgrounds: default `#6248F5 → #4A2FE0`, dark `#232326 → #141416` (top to bottom).
+App icon backgrounds: default `#6A4DFA → #4B2FE2`, dark `#2A2A2E → #141416` (top to bottom). On the default icon the diamond and value line are white and the key line is Graphite; on the dark one they are Lavender and Mist.
 
-Contrast: Violet on white 6.2:1, white on Violet 6.2:1, Lavender on Graphite 7.4:1.
+Contrast: Violet on white 6.2:1, white on Violet 6.2:1, Lavender on Graphite 7.4:1. Graphite on the default icon tile is 2.2–3.2:1: enough for a shape this size, but don't use that pairing for text.
 
 ## Which version to use
 
@@ -44,9 +50,9 @@ Contrast: Violet on white 6.2:1, white on Violet 6.2:1, Lavender on Graphite 7.4
 
 ## Please don't
 
-- Recolour the mark outside the palette, or swap the diamond and line colours.
+- Recolour the mark outside the palette, or break the colour logic: the diamond and the value line always share a colour, the key line takes the colour of text.
 - Add glows, shadows, gradients or outlines to the flat symbol and lockups. The depth belongs to the app icon only.
-- Move, resize or reorder the diamond and the lines, or set the name in another typeface.
+- Move, resize or reorder the diamond and the lines, swap the key and value lines, or set the name in another typeface.
 - Stretch, rotate or skew any version.
 - Place the `color` version on Violet or busy backgrounds — use `white` instead.
 

@@ -2,22 +2,12 @@
 <title>Export Component Metadata</title>
 <defs>
   <clipPath id="tile"><rect width="1024" height="1024" rx="230.4"/></clipPath>
-  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#232326"/><stop offset="1" stop-color="#141416"/></linearGradient>
-  <linearGradient id="dia" gradientUnits="userSpaceOnUse" x1="0" y1="76" x2="0" y2="180"><stop offset="0" stop-color="#B99BFF"/><stop offset="1" stop-color="#8E62FF"/></linearGradient>
-  <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="0" y1="76" x2="0" y2="180"><stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
-  <linearGradient id="barRim" gradientUnits="userSpaceOnUse" x1="0" y1="77.0" x2="0" y2="179.0"><stop offset="0" stop-color="#fff" stop-opacity="0.55"/><stop offset="1" stop-color="#fff" stop-opacity="0.19"/></linearGradient>
-  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3"/></filter>
-  <clipPath id="dclip"><path d="M91.66 81.66L132.34 122.34Q138.00 128.00 132.34 133.66L91.66 174.34Q86.00 180.00 80.34 174.34L39.66 133.66Q34.00 128.00 39.66 122.34L80.34 81.66Q86.00 76.00 91.66 81.66Z"/></clipPath>
-  <clipPath id="bclip"><path d="M169.00 77.00H215.00A11.0 11.0 0 0 1 215.00 99.00H169.00A11.0 11.0 0 0 1 169.00 77.00ZM87.00 117.00H215.00A11.0 11.0 0 0 1 215.00 139.00H87.00A11.0 11.0 0 0 1 87.00 117.00ZM169.00 157.00H189.00A11.0 11.0 0 0 1 189.00 179.00H169.00A11.0 11.0 0 0 1 169.00 157.00Z"/></clipPath>
+  <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2A2A2E"/><stop offset="1" stop-color="#141416"/></linearGradient>
+  <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.1"/><stop offset=".12" stop-color="#fff" stop-opacity="0"/></linearGradient>
 </defs>
 <g clip-path="url(#tile)">
   <rect width="1024" height="1024" fill="url(#bg)"/>
-  <g transform="translate(512.0 512.0) scale(3.2000) translate(-130.0 -128)">
-    <g filter="url(#shadow)" opacity="0.35" transform="translate(0 3)"><path d="M169.00 77.00H215.00A11.0 11.0 0 0 1 215.00 99.00H169.00A11.0 11.0 0 0 1 169.00 77.00ZM87.00 117.00H215.00A11.0 11.0 0 0 1 215.00 139.00H87.00A11.0 11.0 0 0 1 87.00 117.00ZM169.00 157.00H189.00A11.0 11.0 0 0 1 189.00 179.00H169.00A11.0 11.0 0 0 1 169.00 157.00Z"/><path d="M91.66 81.66L132.34 122.34Q138.00 128.00 132.34 133.66L91.66 174.34Q86.00 180.00 80.34 174.34L39.66 133.66Q34.00 128.00 39.66 122.34L80.34 81.66Q86.00 76.00 91.66 81.66Z"/></g>
-    <path fill="#F2F2F7" fill-opacity="0.82" d="M169.00 77.00H215.00A11.0 11.0 0 0 1 215.00 99.00H169.00A11.0 11.0 0 0 1 169.00 77.00ZM87.00 117.00H215.00A11.0 11.0 0 0 1 215.00 139.00H87.00A11.0 11.0 0 0 1 87.00 117.00ZM169.00 157.00H189.00A11.0 11.0 0 0 1 189.00 179.00H169.00A11.0 11.0 0 0 1 169.00 157.00Z"/>
-    <g clip-path="url(#bclip)"><path fill="none" stroke="url(#barRim)" stroke-width="1.6" d="M169.00 77.00H215.00A11.0 11.0 0 0 1 215.00 99.00H169.00A11.0 11.0 0 0 1 169.00 77.00ZM87.00 117.00H215.00A11.0 11.0 0 0 1 215.00 139.00H87.00A11.0 11.0 0 0 1 87.00 117.00ZM169.00 157.00H189.00A11.0 11.0 0 0 1 189.00 179.00H169.00A11.0 11.0 0 0 1 169.00 157.00Z"/></g>
-    <path fill="url(#dia)" d="M91.66 81.66L132.34 122.34Q138.00 128.00 132.34 133.66L91.66 174.34Q86.00 180.00 80.34 174.34L39.66 133.66Q34.00 128.00 39.66 122.34L80.34 81.66Q86.00 76.00 91.66 81.66Z"/>
-    <g clip-path="url(#dclip)"><path fill="none" stroke="url(#rim)" stroke-width="2" d="M91.66 81.66L132.34 122.34Q138.00 128.00 132.34 133.66L91.66 174.34Q86.00 180.00 80.34 174.34L39.66 133.66Q34.00 128.00 39.66 122.34L80.34 81.66Q86.00 76.00 91.66 81.66Z"/></g>
-  </g>
+  <rect x="1.00" y="1.00" width="1022.00" height="1022.00" rx="229.4" fill="none" stroke="url(#rim)" stroke-width="2.00"/>
+  <g transform="translate(512.0 512.0) scale(3.1821) translate(-128.00 -128)"><path fill="#F5F5F7" d="M158.12 97.00H218.98A12.0 12.0 0 0 1 218.98 121.00H158.12A12.0 12.0 0 0 1 158.12 97.00Z"/><path fill="#B99BFF" d="M158.12 135.00H186.56A12.0 12.0 0 0 1 186.56 159.00H158.12A12.0 12.0 0 0 1 158.12 135.00Z"/><path fill="#B99BFF" d="M90.98 76.40L132.68 118.10C138.62 124.04 138.62 131.96 132.68 137.90L90.98 179.60C85.04 185.54 77.12 185.54 71.18 179.60L29.48 137.90C23.54 131.96 23.54 124.04 29.48 118.10L71.18 76.40C77.12 70.46 85.04 70.46 90.98 76.40Z"/></g>
 </g>
 </svg>
