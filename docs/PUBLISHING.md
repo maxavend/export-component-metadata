@@ -69,8 +69,9 @@ The plugin is live at [figma.com/community/plugin/1568592066328136279](https://w
 | Gallery 5 — *Copy it. Paste it. Done.* | 1920 × 1080 px | [`docs/publishing/gallery-5-paste.png`](publishing/gallery-5-paste.png) |
 | Gallery 6 — *One component, or the whole file.* | 1920 × 1080 px | [`docs/publishing/gallery-6-export-all.png`](publishing/gallery-6-export-all.png) |
 | Gallery 7 — *Feels like Figma.* | 1920 × 1080 px | [`docs/publishing/gallery-7-native.png`](publishing/gallery-7-native.png) |
+| Gallery 8 — *Your components, documented.* (closing) | 1920 × 1080 px | [`docs/publishing/gallery-8-closing.png`](publishing/gallery-8-closing.png) |
 
-The cover and the seven gallery images make an eight-slide carousel (Figma allows up to ten); upload them in this order. Keep important content inside the central 1800 × 1080 px safe area. The icon is the default appearance of the app icon in the [brand kit](brand/README.md) (`docs/brand/png/` has it up to 1024 px).
+The cover and the eight gallery images make a nine-slide carousel (Figma allows up to ten); upload them in this order. Keep important content inside the central 1800 × 1080 px safe area. The icon is the default appearance of the app icon in the [brand kit](brand/README.md) (`docs/brand/png/` has it up to 1024 px).
 
 The plugin windows in the cover and gallery are the real `dist/ui.html`, loaded and driven with sample data, so they always match what users get. The sources are in [`docs/publishing/src`](publishing/src); if the UI or the brand changes, rebuild and render them again:
 
