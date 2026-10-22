@@ -1,18 +1,16 @@
 <!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>
-.head{position:absolute;left:160px;right:160px;top:112px;display:flex;align-items:flex-end;justify-content:space-between;gap:80px}
-.head .lede{max-width:600px;margin:0 0 6px}
-h1{font-size:72px}
-.tiles{position:absolute;left:160px;right:160px;top:420px;display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+:root{--lede-w:512px}
+.tiles{position:absolute;left:160px;right:160px;top:416px;display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
 .tile{height:330px;border-radius:24px;background:#1E1E1E;position:relative;overflow:hidden;
   background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:20px 20px}
 .cap{position:absolute;left:28px;top:24px;display:flex;align-items:center;gap:10px;font:600 19px/1 Inter;color:#F5F5F7}
 .cap svg{color:#B794FF}
 /* Only the frame sets the node's size, so every frame sits in the centre of its tile; the label hangs above it like in Figma */
-.node{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%) scale(1.45)}
+.node{position:absolute;left:50%;top:var(--frame-cy);transform:translate(-50%,-50%) scale(1.45)}
 .lbl{position:absolute;left:1px;bottom:100%;margin-bottom:7px;display:flex;align-items:center;gap:5px;font:500 13px/1 Inter;color:#B794FF;white-space:nowrap}
 .set{display:flex;gap:10px;padding:16px;background:#fff;border:1.5px dashed #9747FF;border-radius:6px}
-.solo{display:inline-block;padding:12px;background:#fff;border-radius:4px}
-.solo.var{box-shadow:0 0 0 1.5px #9747FF}
+.solo{display:inline-block;padding:16px;background:#fff;border:1.5px solid transparent;border-radius:6px}
+.solo.var{border-color:#9747FF}
 .btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 15px;border-radius:999px;background:#1D1D1F;color:#fff;font:500 14px/1 Inter;white-space:nowrap}
 .btn.h{background:#3A3A3C}.btn.d{background:#E5E5EA;color:#AEAEB2}
 .sel{position:absolute;inset:-5px;border:2px solid var(--sel);pointer-events:none}
@@ -20,22 +18,22 @@ h1{font-size:72px}
 .sel i:nth-child(1){left:-5px;top:-5px}.sel i:nth-child(2){right:-5px;top:-5px}.sel i:nth-child(3){left:-5px;bottom:-5px}.sel i:nth-child(4){right:-5px;bottom:-5px}
 .wrap{position:relative;display:inline-block}
 svg.links{position:absolute;left:0;top:0}
-.result{position:absolute;left:50%;top:860px;transform:translateX(-50%);display:flex;align-items:center;gap:16px;background:#fff;border-radius:999px;padding:18px 30px 18px 24px;
+.result{position:absolute;left:960px;transform:translateX(-50%);bottom:112px;display:flex;align-items:center;gap:12px;background:#fff;border-radius:999px;padding:19px 28px;
   box-shadow:0 0 0 1px rgba(0,0,0,.05),0 16px 40px rgba(30,20,90,.10);font:500 22px/1 Inter;white-space:nowrap}
-.result img{height:26px}.result b{font-weight:600;color:#7B3FE4}.result span{color:var(--grey)}
+.result svg{color:#7B3FE4;flex:none}.result b{font-weight:600;color:#7B3FE4}.result span{color:var(--grey);margin-left:4px}
 </style></head><body>
 <div class="head">
   <div><div class="eyebrow"><img src="../../brand/symbol/symbol-color.svg" alt="">Export Component Metadata</div>
   <h1>Start from any selection.</h1></div>
-  <p class="lede">The component set, one of its variants or an instance on the canvas: the plugin finds the main component and documents it.</p>
+  <p class="lede">Select the set, a variant or an instance. The plugin finds the main component.</p>
 </div>
-<svg class="links" width="1920" height="1080"><g fill="none" stroke="#C9C9D1" stroke-width="2"><path d="M445 750 C445 810 960 800 960 856"/><path d="M960 750 V856"/><path d="M1475 750 C1475 810 960 800 960 856"/></g><circle cx="960" cy="856" r="0"/></svg>
+<svg class="links" width="1920" height="1080"><g id="links" fill="none" stroke="#C9C9D1" stroke-width="2"></g></svg>
 <div class="tiles">
   <div class="tile"><div class="cap" id="c1"></div><div class="node"><div class="lbl" id="l1"></div><div class="wrap"><div class="set"><span class="btn">Button</span><span class="btn h">Button</span><span class="btn d">Button</span></div><div class="sel"><i></i><i></i><i></i><i></i></div></div></div></div>
   <div class="tile"><div class="cap" id="c2"></div><div class="node"><div class="lbl" id="l2"></div><div class="wrap"><div class="solo var"><span class="btn h">Button</span></div><div class="sel"><i></i><i></i><i></i><i></i></div></div></div></div>
   <div class="tile"><div class="cap" id="c3"></div><div class="node"><div class="lbl" id="l3"></div><div class="wrap"><div class="solo"><span class="btn">Button</span></div><div class="sel"><i></i><i></i><i></i><i></i></div></div></div></div>
 </div>
-<div class="result"><img src="../../brand/symbol/symbol-color.svg" alt=""><b>Button</b><span>Variants: 12 · Component Props: 5</span></div>
+<div class="result"><svg width="22" height="22" viewBox="0 0 16 16"><path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg><b>Button</b><span>Variants: 12 · Component Props: 5</span></div>
 <script>
 // Figma layer icons: component set, variant (component), instance
 const SET = '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1.5 14.5 8 8 14.5 1.5 8Z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-dasharray="2.2 1.6"/><path d="M8 5.2 10.8 8 8 10.8 5.2 8Z" fill="currentColor"/></svg>';
@@ -45,5 +43,21 @@ const set = (id, html) => document.getElementById(id).innerHTML = html;
 set('c1', SET + 'The component set'); set('l1', SET + 'Button');
 set('c2', COMP + 'One of its variants'); set('l2', COMP + 'Size=M, State=Hover');
 set('c3', INST + 'An instance'); set('l3', INST + 'Button');
+// Centre each frame in the space under the caption: equal room above its label and below the frame
+document.fonts.ready.then(() => {
+const tile = document.querySelector('.tile'), cap = tile.querySelector('.cap').getBoundingClientRect();
+const t = tile.getBoundingClientRect(), wrap = tile.querySelector('.wrap').getBoundingClientRect(), lbl = tile.querySelector('.lbl').getBoundingClientRect();
+const above = wrap.top - lbl.top, room = t.bottom - cap.bottom;
+const frameTop = cap.bottom + (room - (above + wrap.height)) / 2 + above;
+document.documentElement.style.setProperty('--frame-cy', `${frameTop - t.top + wrap.height / 2}px`);
+// Connectors run from each tile's bottom centre to the top centre of the result
+requestAnimationFrame(() => {
+  const r = document.querySelector('.result').getBoundingClientRect(), x = (r.left + r.right) / 2, mid = (t.bottom + r.top) / 2;
+  document.getElementById('links').innerHTML = [...document.querySelectorAll('.tile')].map((el) => {
+    const b = el.getBoundingClientRect(), cx = (b.left + b.right) / 2;
+    return `<path d="M${cx} ${b.bottom} C${cx} ${mid} ${x} ${mid} ${x} ${r.top}"/>`;
+  }).join('');
+});
+});
 </script>
 </body></html>
