@@ -7,8 +7,9 @@ h1{font-size:72px}
   background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:20px 20px}
 .cap{position:absolute;left:28px;top:24px;display:flex;align-items:center;gap:10px;font:600 19px/1 Inter;color:#F5F5F7}
 .cap svg{color:#B794FF}
-.node{position:absolute;left:50%;top:57%;transform:translate(-50%,-50%) scale(1.45)}
-.lbl{display:flex;align-items:center;gap:5px;font:500 13px/1 Inter;color:#B794FF;margin:0 0 7px 1px}
+/* Only the frame sets the node's size, so every frame sits in the centre of its tile; the label hangs above it like in Figma */
+.node{position:absolute;left:50%;top:60%;transform:translate(-50%,-50%) scale(1.45)}
+.lbl{position:absolute;left:1px;bottom:100%;margin-bottom:7px;display:flex;align-items:center;gap:5px;font:500 13px/1 Inter;color:#B794FF;white-space:nowrap}
 .set{display:flex;gap:10px;padding:16px;background:#fff;border:1.5px dashed #9747FF;border-radius:6px}
 .solo{display:inline-block;padding:12px;background:#fff;border-radius:4px}
 .solo.var{box-shadow:0 0 0 1.5px #9747FF}
